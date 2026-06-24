@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Employee {
+  id         String   @id @default(cuid())
+  name       String
+  employeeId String   @unique
+  branch     String
+  role       String   // KITCHEN | CASHIER | MANAGER
+  password   String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  statusChanges    OrderStatusHistory[]
+  serviceCompleted ServiceRequest[]     @relation("CompletedBy")
+}
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   // FRIED_CHICKEN | BURGER | RICE | DRINKS | COMBO | DESSERT
+  price       Float
+  imageEmoji  String   @default("🍽️")
+  available   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  orderNumber   String   @unique
+  tableNumber   String
+  customerName  String?
+  status        String   @default("RECEIVED")
+  totalAmount   Float
+  estimatedTime Int      @default(15)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+  feedback      Feedback?
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  quantity   Int
+  price      Float
+  notes      String?
+  menuItemId String
+  orderId    String
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderStatusHistory {
+  id          String   @id @default(cuid())
+  orderId     String
+  status      String
+  changedById String?
+  changedAt   DateTime @default(now())
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy Employee? @relation(fields: [changedById], references: [id])
+}
+
+model ServiceRequest {
+  id            String    @id @default(cuid())
+  tableNumber   String
+  type          String    // WATER | TISSUE | BILL | ASSISTANCE
+  status        String    @default("PENDING")
+  completedById String?
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
+
+  completedBy Employee? @relation("CompletedBy", fields: [completedById], references: [id])
+}
+
+model Feedback {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  tableNumber   String
+  foodRating    Int
+  serviceRating Int
+  waitingRating Int
+  comment       String?
+  createdAt     DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+model InventoryItem {
+  id           String   @id @default(cuid())
+  name         String
+  unit         String
+  currentStock Float    @default(0)
+  minimumStock Float    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactions InventoryTransaction[]
+}
+
+model InventoryTransaction {
+  id        String   @id @default(cuid())
+  itemId    String
+  type      String   // ADD | REMOVE | ADJUST
+  quantity  Float
+  note      String?
+  createdAt DateTime @default(now())
+
+  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}

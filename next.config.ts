@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["better-sqlite3", "@prisma/adapter-better-sqlite3", "bcryptjs"],
+  images: {
+    domains: [],
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
 };
 
 export default nextConfig;

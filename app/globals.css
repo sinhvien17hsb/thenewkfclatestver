@@ -1,26 +1,149 @@
 @import "tailwindcss";
 
+@theme {
+  --color-kfc-red: #E4002B;
+  --color-kfc-red-dark: #BB0020;
+  --color-kfc-red-light: #FF1A3C;
+  --color-kfc-black: #1A1A1A;
+  --color-kfc-cream: #FFF5E6;
+  --color-kfc-cream-dark: #F5E6CC;
+  --color-kfc-gray: #F8F8F8;
+  --color-kfc-border: #E5E7EB;
+  --color-kfc-text: #1A1A1A;
+  --color-kfc-muted: #6B7280;
+
+  --color-status-queued: #F59E0B;
+  --color-status-preparing: #3B82F6;
+  --color-status-quality: #8B5CF6;
+  --color-status-ready: #10B981;
+  --color-status-completed: #6B7280;
+
+  --color-priority-critical: #EF4444;
+  --color-priority-high: #F97316;
+  --color-priority-medium: #F59E0B;
+  --color-priority-low: #10B981;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FFFFFF;
+  --foreground: #1A1A1A;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #E4002B;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #BB0020;
+}
+
+/* KFC gradient */
+.kfc-gradient {
+  background: linear-gradient(135deg, #E4002B 0%, #BB0020 100%);
+}
+
+.kfc-gradient-text {
+  background: linear-gradient(135deg, #E4002B 0%, #FF4D6A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(228, 0, 43, 0.15);
+}
+
+/* Kanban column */
+.kanban-column {
+  min-height: 400px;
+}
+
+/* Priority badge pulse */
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.pulse-critical {
+  animation: pulse-red 1.5s ease-in-out infinite;
+}
+
+/* Page transition */
+.page-enter {
+  animation: fadeInUp 0.3s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Chart container */
+.chart-container {
+  width: 100%;
+  min-height: 200px;
+}
+
+/* Status timeline */
+.timeline-step.active .timeline-dot {
+  background-color: #E4002B;
+  box-shadow: 0 0 0 4px rgba(228, 0, 43, 0.2);
+}
+
+.timeline-step.completed .timeline-dot {
+  background-color: #10B981;
+}
+
+.timeline-step.pending .timeline-dot {
+  background-color: #E5E7EB;
+}
+
+/* Mobile bottom nav */
+@media (max-width: 768px) {
+  .desktop-sidebar {
+    display: none;
+  }
 }
