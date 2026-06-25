@@ -65,7 +65,7 @@ export default function CustomerHome() {
       <section className="relative overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/kfc-banner.jpeg"
+          src="/kfc-banner.webp"
           alt="KFC Banner"
           className="w-full h-56 md:h-72 object-cover object-center"
         />
