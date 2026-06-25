@@ -46,10 +46,11 @@ export async function GET() {
     }),
   ]);
 
-  const menuItemIds = topItems.map((t) => t.menuItemId);
+  type TopItem = { menuItemId: string; _sum: { quantity: number | null } };
+  const menuItemIds = (topItems as TopItem[]).map((t) => t.menuItemId);
   const menuItems = await prisma.menuItem.findMany({ where: { id: { in: menuItemIds } } });
 
-  const topProducts = topItems.map((t) => {
+  const topProducts = (topItems as TopItem[]).map((t) => {
     const item = menuItems.find((m) => m.id === t.menuItemId);
     return {
       name: item?.name ?? "Unknown",
