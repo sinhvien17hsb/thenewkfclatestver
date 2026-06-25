@@ -12,6 +12,7 @@ import type { MenuCategory } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { translate } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface DbMenuItem {
   id: string; name: string; description: string | null;
@@ -176,12 +177,18 @@ export default function CustomerHome() {
                             <div className="text-base font-black text-[#E4002B] mt-0.5">{formatCurrency(item.price)}</div>
                           </div>
                           <button
-                            onClick={() => addToCart({
-                              id: item.id, name: item.name, nameEn: "", description: item.description ?? "",
-                              price: item.price, category: item.category as MenuCategory,
-                              image: item.imageEmoji, popular: item.popular,
-                              prepTime: item.prepTime, available: item.available,
-                            })}
+                            onClick={() => {
+                              addToCart({
+                                id: item.id, name: item.name, nameEn: "", description: item.description ?? "",
+                                price: item.price, category: item.category as MenuCategory,
+                                image: item.imageEmoji, popular: item.popular,
+                                prepTime: item.prepTime, available: item.available,
+                              });
+                              toast.success(`Đã thêm vào giỏ hàng`, {
+                                description: item.name,
+                                duration: 1800,
+                              });
+                            }}
                             className="flex-shrink-0 w-9 h-9 rounded-full bg-[#E4002B] text-white flex items-center justify-center text-xl font-bold hover:bg-[#BB0020] transition-colors shadow-md"
                           >
                             +
