@@ -9,13 +9,20 @@ export const T = {
   nav_staff:    { vi: "Nhân viên", en: "Staff" },
 
   // Categories
-  cat_all:        { vi: "Tất cả",      en: "All" },
+  cat_all:        { vi: "Tất cả",                  en: "All" },
+  cat_uu_dai:     { vi: "Ưu Đãi",                  en: "Deals" },
+  cat_mon_moi:    { vi: "Món Mới",                  en: "New" },
+  cat_combo_1:    { vi: "Combo 1 Người",            en: "Solo Combo" },
+  cat_combo_2:    { vi: "Combo 2 Người",            en: "Duo Combo" },
+  cat_combo_nhom: { vi: "Combo Nhóm",               en: "Group Combo" },
+  cat_ga_ran:     { vi: "Gà Rán",                   en: "Chicken" },
+  cat_burger_com: { vi: "Burger – Cơm – Mì Ý",     en: "Burger, Rice & Pasta" },
+  cat_mon_phu:    { vi: "Thức Ăn Nhẹ",              en: "Sides" },
+  cat_do_uong:    { vi: "Đồ Uống & Tráng Miệng",   en: "Drinks & Desserts" },
+  // kept for legacy
   cat_combo:      { vi: "Combo",       en: "Combo" },
-  cat_ga_ran:     { vi: "Gà Rán",      en: "Chicken" },
   cat_burger:     { vi: "Burger",      en: "Burger" },
-  cat_mon_phu:    { vi: "Món Phụ",     en: "Sides" },
   cat_trang_miem: { vi: "Tráng Miệng", en: "Desserts" },
-  cat_do_uong:    { vi: "Đồ Uống",     en: "Drinks" },
   cat_com:        { vi: "Cơm",         en: "Rice" },
 
   // Customer menu

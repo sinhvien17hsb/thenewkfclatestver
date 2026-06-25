@@ -30,8 +30,10 @@ interface DbMenuItem {
 }
 
 const CAT_KEYS: Record<string, Parameters<typeof translate>[0]> = {
-  ga_ran: "cat_ga_ran", burger: "cat_burger", combo: "cat_combo",
-  mon_phu: "cat_mon_phu", trang_miem: "cat_trang_miem", do_uong: "cat_do_uong", com: "cat_com",
+  uu_dai: "cat_uu_dai", mon_moi: "cat_mon_moi",
+  combo_1: "cat_combo_1", combo_2: "cat_combo_2", combo_nhom: "cat_combo_nhom",
+  ga_ran: "cat_ga_ran", burger_com: "cat_burger_com",
+  mon_phu: "cat_mon_phu", do_uong: "cat_do_uong",
 };
 
 export default function MenuPage() {

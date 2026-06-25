@@ -30,22 +30,26 @@ export const USER_ROLES: Record<UserRole, { label: string; labelVi: string; colo
 
 // ===== MENU =====
 export type MenuCategory =
+  | "uu_dai"
+  | "mon_moi"
+  | "combo_1"
+  | "combo_2"
+  | "combo_nhom"
   | "ga_ran"
-  | "burger"
-  | "com"
-  | "do_uong"
-  | "combo"
+  | "burger_com"
   | "mon_phu"
-  | "trang_miem";
+  | "do_uong";
 
 export const MENU_CATEGORIES: Record<MenuCategory, { label: string; emoji: string; color: string }> = {
-  ga_ran: { label: "Gà Rán", emoji: "🍗", color: "#E4002B" },
-  burger: { label: "Burger", emoji: "🍔", color: "#F97316" },
-  com: { label: "Cơm", emoji: "🍚", color: "#EAB308" },
-  mon_phu: { label: "Món Phụ", emoji: "🍟", color: "#10B981" },
-  do_uong: { label: "Đồ Uống", emoji: "🥤", color: "#3B82F6" },
-  combo: { label: "Combo", emoji: "🎁", color: "#8B5CF6" },
-  trang_miem: { label: "Tráng Miệng", emoji: "🍦", color: "#EC4899" },
+  uu_dai:     { label: "Ưu Đãi",              emoji: "🔥", color: "#E4002B" },
+  mon_moi:    { label: "Món Mới",              emoji: "🆕", color: "#F97316" },
+  combo_1:    { label: "Combo 1 Người",        emoji: "👤", color: "#8B5CF6" },
+  combo_2:    { label: "Combo 2 Người",        emoji: "👫", color: "#6366F1" },
+  combo_nhom: { label: "Combo Nhóm",           emoji: "👥", color: "#3B82F6" },
+  ga_ran:     { label: "Gà Rán",              emoji: "🍗", color: "#E4002B" },
+  burger_com: { label: "Burger – Cơm – Mì Ý", emoji: "🍔", color: "#F97316" },
+  mon_phu:    { label: "Thức Ăn Nhẹ",         emoji: "🍟", color: "#10B981" },
+  do_uong:    { label: "Đồ Uống & Tráng Miệng", emoji: "🥤", color: "#3B82F6" },
 };
 
 export interface MenuItem {

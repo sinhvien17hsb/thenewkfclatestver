@@ -1,16 +1,23 @@
 "use client";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import {
   Clock, Star, ChevronRight, ShoppingCart, MapPin,
   UtensilsCrossed, Package, MessageSquare, Flame
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { getPopularItems } from "@/lib/data/menu";
 import { MENU_CATEGORIES } from "@/lib/types";
+import type { MenuCategory } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { translate } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+
+interface DbMenuItem {
+  id: string; name: string; description: string | null;
+  category: string; price: number; imageEmoji: string;
+  imageUrl: string; available: boolean; popular: boolean; prepTime: number;
+}
 
 const QUEUE_STATS = { waitTime: 12, activeOrders: 8, openStatus: true };
 
@@ -23,8 +30,15 @@ const categories = Object.entries(MENU_CATEGORIES).map(([key, val]) => ({
 export default function CustomerHome() {
   const { addToCart, cartItemCount, language } = useAppStore();
   const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
-  const popular = getPopularItems().slice(0, 6);
   const count = cartItemCount();
+  const [popular, setPopular] = useState<DbMenuItem[]>([]);
+
+  useEffect(() => {
+    fetch("/api/menu?available=true")
+      .then((r) => r.json())
+      .then((items: DbMenuItem[]) => setPopular(items.filter((i) => i.popular).slice(0, 6)))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 md:pb-6">
@@ -115,9 +129,14 @@ export default function CustomerHome() {
                 className="flex-shrink-0 w-40"
               >
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                  <div className="bg-gradient-to-br from-red-50 to-orange-50 h-24 flex items-center justify-center text-5xl">
-                    {item.image}
-                  </div>
+                  {item.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.imageUrl} alt={item.name} className="w-full h-24 object-cover" loading="lazy" />
+                  ) : (
+                    <div className="bg-gradient-to-br from-red-50 to-orange-50 h-24 flex items-center justify-center text-5xl">
+                      {item.imageEmoji}
+                    </div>
+                  )}
                   <div className="p-2.5">
                     <div className="text-xs font-bold text-gray-900 leading-tight line-clamp-2 mb-1">
                       {item.name}
@@ -127,7 +146,12 @@ export default function CustomerHome() {
                         {formatCurrency(item.price)}
                       </span>
                       <button
-                        onClick={() => addToCart(item)}
+                        onClick={() => addToCart({
+                          id: item.id, name: item.name, nameEn: "", description: item.description ?? "",
+                          price: item.price, category: item.category as MenuCategory,
+                          image: item.imageEmoji, popular: item.popular,
+                          prepTime: item.prepTime, available: item.available,
+                        })}
                         className="w-6 h-6 rounded-full bg-[#E4002B] text-white flex items-center justify-center text-lg font-bold hover:bg-[#BB0020] transition-colors leading-none"
                       >
                         +
