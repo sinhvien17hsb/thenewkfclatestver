@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
 import {
   Clock, Star, ChevronRight, ShoppingCart, MapPin,
-  UtensilsCrossed, Package, MessageSquare, Flame
+  UtensilsCrossed, Package, MessageSquare, Flame, ChevronLeft
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { MENU_CATEGORIES } from "@/lib/types";
@@ -32,13 +32,30 @@ export default function CustomerHome() {
   const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
   const count = cartItemCount();
   const [popular, setPopular] = useState<DbMenuItem[]>([]);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const slideDir = useRef(1);
 
   useEffect(() => {
     fetch("/api/menu?available=true")
       .then((r) => r.json())
-      .then((items: DbMenuItem[]) => setPopular(items.filter((i) => i.popular).slice(0, 6)))
+      .then((items: DbMenuItem[]) => setPopular(items.filter((i) => i.popular).slice(0, 8)))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (popular.length < 2 || paused) return;
+    const t = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % popular.length);
+      slideDir.current = 1;
+    }, 3000);
+    return () => clearInterval(t);
+  }, [popular.length, paused]);
+
+  const goTo = (idx: number, dir: number) => {
+    slideDir.current = dir;
+    setSlideIndex((idx + popular.length) % popular.length);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 md:pb-6">
@@ -119,49 +136,89 @@ export default function CustomerHome() {
             </Link>
           </div>
 
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
-            {popular.map((item, i) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.06 }}
-                className="flex-shrink-0 w-40"
-              >
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                  {item.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.imageUrl} alt={item.name} className="w-full h-24 object-cover" loading="lazy" />
-                  ) : (
-                    <div className="bg-gradient-to-br from-red-50 to-orange-50 h-24 flex items-center justify-center text-5xl">
-                      {item.imageEmoji}
-                    </div>
-                  )}
-                  <div className="p-2.5">
-                    <div className="text-xs font-bold text-gray-900 leading-tight line-clamp-2 mb-1">
-                      {item.name}
-                    </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-sm font-black text-[#E4002B]">
-                        {formatCurrency(item.price)}
-                      </span>
-                      <button
-                        onClick={() => addToCart({
-                          id: item.id, name: item.name, nameEn: "", description: item.description ?? "",
-                          price: item.price, category: item.category as MenuCategory,
-                          image: item.imageEmoji, popular: item.popular,
-                          prepTime: item.prepTime, available: item.available,
-                        })}
-                        className="w-6 h-6 rounded-full bg-[#E4002B] text-white flex items-center justify-center text-lg font-bold hover:bg-[#BB0020] transition-colors leading-none"
+          {popular.length > 0 && (
+            <div
+              className="relative overflow-hidden rounded-2xl"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+            >
+              {/* Slide area */}
+              <div className="relative h-64">
+                <AnimatePresence initial={false} custom={slideDir.current}>
+                  {popular[slideIndex] && (() => {
+                    const item = popular[slideIndex];
+                    return (
+                      <motion.div
+                        key={slideIndex}
+                        custom={slideDir.current}
+                        variants={{
+                          enter: (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
+                          center: { x: 0, opacity: 1 },
+                          exit: (dir: number) => ({ x: dir > 0 ? "-100%" : "100%", opacity: 0 }),
+                        }}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={{ type: "tween", duration: 0.35 }}
+                        className="absolute inset-0 bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col"
                       >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                        {item.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.imageUrl} alt={item.name} className="w-full h-40 object-cover" loading="lazy" />
+                        ) : (
+                          <div className="bg-gradient-to-br from-red-50 to-orange-50 h-40 flex items-center justify-center text-7xl">
+                            {item.imageEmoji}
+                          </div>
+                        )}
+                        <div className="p-3 flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-gray-900 truncate">{item.name}</div>
+                            <div className="text-base font-black text-[#E4002B] mt-0.5">{formatCurrency(item.price)}</div>
+                          </div>
+                          <button
+                            onClick={() => addToCart({
+                              id: item.id, name: item.name, nameEn: "", description: item.description ?? "",
+                              price: item.price, category: item.category as MenuCategory,
+                              image: item.imageEmoji, popular: item.popular,
+                              prepTime: item.prepTime, available: item.available,
+                            })}
+                            className="flex-shrink-0 w-9 h-9 rounded-full bg-[#E4002B] text-white flex items-center justify-center text-xl font-bold hover:bg-[#BB0020] transition-colors shadow-md"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })()}
+                </AnimatePresence>
+              </div>
+
+              {/* Prev / Next arrows */}
+              <button
+                onClick={() => goTo(slideIndex - 1, -1)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm shadow flex items-center justify-center text-gray-700 hover:bg-white transition z-10"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => goTo(slideIndex + 1, 1)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm shadow flex items-center justify-center text-gray-700 hover:bg-white transition z-10"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+
+              {/* Dot indicators */}
+              <div className="absolute bottom-12 left-0 right-0 flex justify-center gap-1.5 z-10">
+                {popular.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => goTo(i, i > slideIndex ? 1 : -1)}
+                    className={`h-1.5 rounded-full transition-all ${i === slideIndex ? "w-5 bg-[#E4002B]" : "w-1.5 bg-gray-300"}`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ===== CATEGORIES ===== */}
