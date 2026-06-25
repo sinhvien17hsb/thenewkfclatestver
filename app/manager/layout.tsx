@@ -34,20 +34,21 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!mounted) return;
+    if (!user) { router.replace("/employee/login?redirect=" + encodeURIComponent(pathname)); return; }
     if (user.role === "kitchen") { router.replace("/kitchen/orders"); return; }
     if (user.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
       router.replace("/manager/shifts");
     }
-  }, [user, pathname, router]);
+  }, [mounted, user, pathname, router]);
 
-  if (!mounted) return null;
+  if (!mounted) return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-[#E4002B] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
-  if (!user) {
-    router.replace("/employee/login?redirect=" + encodeURIComponent(pathname));
-    return null;
-  }
-  if (user.role === "kitchen") return null;
+  if (!user || user.role === "kitchen") return null;
   if (user.role === "supervisor" && !pathname.startsWith("/manager/shifts")) return null;
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");

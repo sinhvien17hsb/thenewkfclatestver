@@ -31,8 +31,9 @@ export default function StaffLoginPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (user) router.replace(REDIRECT_MAP[user.role] ?? "/kitchen/orders");
-  }, [user, router]);
+    if (user) router.replace(REDIRECT_MAP[user.role as string] ?? "/kitchen/orders");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

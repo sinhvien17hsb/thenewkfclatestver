@@ -11,20 +11,26 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { setMounted(true); }, []);
 
-  // Wait for Zustand to rehydrate from localStorage before checking auth
-  if (!mounted) return null;
+  useEffect(() => {
+    if (!mounted) return;
+    if (!user) {
+      router.replace(`/employee/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+    if (!canAccess(pathname)) {
+      if (user.role === "kitchen") router.replace("/kitchen/orders");
+      else if (user.role === "supervisor") router.replace("/manager/shifts");
+      else router.replace("/unauthorized");
+    }
+  }, [mounted, user, pathname, router, canAccess]);
 
-  if (!user) {
-    router.replace(`/employee/login?redirect=${encodeURIComponent(pathname)}`);
-    return null;
-  }
+  if (!mounted) return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-[#E4002B] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
-  if (!canAccess(pathname)) {
-    if (user.role === "kitchen") { router.replace("/kitchen/orders"); return null; }
-    if (user.role === "supervisor") { router.replace("/manager/shifts"); return null; }
-    router.replace("/unauthorized");
-    return null;
-  }
+  if (!user || !canAccess(pathname)) return null;
 
   return <>{children}</>;
 }
