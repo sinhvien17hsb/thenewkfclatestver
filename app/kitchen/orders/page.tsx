@@ -230,8 +230,11 @@ function KanbanCard({ order, onAdvance }: { order: RichOrder; onAdvance: () => v
           <div className="flex items-start justify-between mb-2">
             <div>
               <div className="font-black text-sm text-gray-900">{order.orderNumber}</div>
-              <div className="text-xs text-gray-500">
-                Bàn {order.tableNumber} · {(order.customerName ?? "Khách").split(" ").slice(-1)[0]}
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                <span className="text-[11px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">Bàn {order.tableNumber}</span>
+                {order.customerName && (
+                  <span className="text-[11px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded font-semibold">👤 {order.customerName}</span>
+                )}
               </div>
             </div>
             <Badge className={`text-[10px] px-1.5 py-0.5 ${getPriorityColor(order.priority)}`}>

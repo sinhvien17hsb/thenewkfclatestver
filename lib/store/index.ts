@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware";
 import type { UserRole, CartItem, MenuItem, Alert, AuthUser, AuthRole } from "@/lib/types";
 import { ROLE_PERMISSIONS, AUTH_ROLE_AVATARS } from "@/lib/types";
 import { alerts as initialAlerts } from "@/lib/data/alerts";
+import type { Lang } from "@/lib/i18n";
 
 // ===== CUSTOMER ORDER =====
 export interface CustomerOrder {
@@ -22,6 +23,9 @@ export interface CustomerOrder {
 interface AppStore {
   role: UserRole;
   setRole: (role: UserRole) => void;
+
+  language: Lang;
+  setLanguage: (lang: Lang) => void;
 
   cart: CartItem[];
   addToCart: (item: MenuItem, quantity?: number, notes?: string) => void;
@@ -47,6 +51,9 @@ export const useAppStore = create<AppStore>()(
     (set, get) => ({
       role: "customer",
       setRole: (role) => set({ role }),
+
+      language: "vi",
+      setLanguage: (lang) => set({ language: lang }),
 
       cart: [],
       addToCart: (item, quantity = 1, notes) => {
@@ -82,6 +89,7 @@ export const useAppStore = create<AppStore>()(
       name: "kfc-sync-app",
       partialize: (state) => ({
         role: state.role,
+        language: state.language,
         tableNumber: state.tableNumber,
         customerOrders: state.customerOrders,
       }),

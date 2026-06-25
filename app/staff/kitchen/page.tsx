@@ -12,6 +12,7 @@ interface OrderItem {
 }
 interface Order {
   id: string; orderNumber: string; tableNumber: string;
+  customerName?: string | null;
   status: string; totalAmount: number; createdAt: string;
   estimatedTime: number; items: OrderItem[];
 }
@@ -68,12 +69,17 @@ function OrderCard({ order, nextStatus, nextLabel, onAdvance }: {
         </div>
       )}
       <div className="p-3.5">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1">
           <span className="font-black text-white text-sm">{order.orderNumber}</span>
-          <div className="flex items-center gap-2">
-            <span className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full">Bàn {order.tableNumber}</span>
-            <span className={`text-xs font-mono ${isOverdue ? "text-red-400" : "text-gray-400"}`}>{elapsed(order.createdAt)}</span>
-          </div>
+          <span className={`text-xs font-mono ${isOverdue ? "text-red-400" : "text-gray-400"}`}>{elapsed(order.createdAt)}</span>
+        </div>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded-full font-bold">Bàn {order.tableNumber}</span>
+          {order.customerName && (
+            <span className="text-xs bg-gray-800 text-yellow-300 px-2 py-0.5 rounded-full font-semibold truncate max-w-[120px]">
+              👤 {order.customerName}
+            </span>
+          )}
         </div>
 
         <div className="space-y-1 mb-3">

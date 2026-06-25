@@ -7,8 +7,10 @@ import {
   Info, User, ShieldCheck, Globe
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useAppStore } from "@/lib/store";
 import { AUTH_ROLE_LABELS, AUTH_ROLE_AVATARS, AUTH_ROLE_COLORS } from "@/lib/types";
+import { translate } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
 
 const DASHBOARD_MAP: Record<string, string> = {
   kitchen: "/kitchen/orders",
@@ -17,21 +19,10 @@ const DASHBOARD_MAP: Record<string, string> = {
 };
 
 function SettingRow({
-  icon: Icon,
-  label,
-  desc,
-  onClick,
-  href,
-  right,
-  danger,
+  icon: Icon, label, desc, onClick, href, right, danger,
 }: {
-  icon: React.ElementType;
-  label: string;
-  desc?: string;
-  onClick?: () => void;
-  href?: string;
-  right?: React.ReactNode;
-  danger?: boolean;
+  icon: React.ElementType; label: string; desc?: string;
+  onClick?: () => void; href?: string; right?: React.ReactNode; danger?: boolean;
 }) {
   const inner = (
     <div
@@ -48,7 +39,6 @@ function SettingRow({
       {right ?? <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />}
     </div>
   );
-
   if (href) return <Link href={href}>{inner}</Link>;
   return inner;
 }
@@ -56,13 +46,21 @@ function SettingRow({
 export default function SettingsPage() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const { language, setLanguage } = useAppStore();
+  const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
 
   const roleColor = user ? AUTH_ROLE_COLORS[user.role] : null;
 
   const handleLogout = () => {
     logout();
-    toast.success("Đã đăng xuất thành công.");
+    toast.success(language === "vi" ? "Đã đăng xuất thành công." : "Signed out successfully.");
     router.push("/");
+  };
+
+  const toggleLanguage = () => {
+    const next: Lang = language === "vi" ? "en" : "vi";
+    setLanguage(next);
+    toast.success(next === "vi" ? "Đã chuyển sang Tiếng Việt" : "Switched to English");
   };
 
   return (
@@ -74,8 +72,8 @@ export default function SettingsPage() {
             <Settings className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-black">Cài đặt</h1>
-            <p className="text-xs text-gray-400">Tùy chỉnh ứng dụng</p>
+            <h1 className="text-lg font-black">{tr("settings_title")}</h1>
+            <p className="text-xs text-gray-400">{tr("settings_subtitle")}</p>
           </div>
         </div>
       </div>
@@ -94,7 +92,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex-1">
               <div className="text-white font-black text-base">
-                {user ? user.name : "Khách hàng"}
+                {user ? user.name : tr("settings_customer")}
               </div>
               {user ? (
                 <div className={`inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${roleColor?.bg} ${roleColor?.text}`}>
@@ -102,13 +100,13 @@ export default function SettingsPage() {
                   {AUTH_ROLE_LABELS[user.role]}
                 </div>
               ) : (
-                <div className="text-red-100 text-xs mt-0.5">Chế độ khách hàng</div>
+                <div className="text-red-100 text-xs mt-0.5">{tr("settings_cust_mode")}</div>
               )}
             </div>
           </div>
         </motion.div>
 
-        {/* Worker mode section */}
+        {/* Work mode section */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -117,7 +115,7 @@ export default function SettingsPage() {
         >
           <div className="bg-gray-200/60 px-4 py-2">
             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
-              <Briefcase className="h-3.5 w-3.5" /> Chế độ làm việc
+              <Briefcase className="h-3.5 w-3.5" /> {tr("settings_work_mode")}
             </span>
           </div>
 
@@ -125,22 +123,22 @@ export default function SettingsPage() {
             <>
               <SettingRow
                 icon={ShieldCheck}
-                label="Dashboard nhân viên"
-                desc={`Vào trang làm việc của ${AUTH_ROLE_LABELS[user.role]}`}
+                label={tr("settings_dashboard")}
+                desc={`${tr("settings_dashboard_d")} ${AUTH_ROLE_LABELS[user.role]}`}
                 href={DASHBOARD_MAP[user.role] ?? "/kitchen/orders"}
               />
               <div className="border-t border-gray-100" />
               <SettingRow
                 icon={User}
-                label="Hồ sơ cá nhân"
-                desc="Xem và chỉnh sửa thông tin tài khoản"
+                label={tr("settings_profile")}
+                desc={tr("settings_profile_d")}
                 href="/employee/profile"
               />
               <div className="border-t border-gray-100" />
               <SettingRow
                 icon={LogOut}
-                label="Đăng xuất khỏi hệ thống"
-                desc="Chuyển về chế độ khách hàng"
+                label={tr("settings_logout")}
+                desc={tr("settings_logout_d")}
                 onClick={handleLogout}
                 danger
                 right={null}
@@ -149,16 +147,16 @@ export default function SettingsPage() {
           ) : (
             <div className="bg-white">
               <div className="px-4 py-3 text-sm text-gray-500 border-b border-gray-100">
-                Bạn đang sử dụng ứng dụng với tư cách khách hàng.
+                {tr("settings_using_as")}
               </div>
               <Link href="/employee/login">
                 <div className="flex items-center gap-3 px-4 py-4 bg-gradient-to-r from-[#E4002B] to-[#BB0020] text-white hover:opacity-90 transition-opacity cursor-pointer">
                   <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <LogIn className="h-4.5 w-4.5 text-white" />
+                    <LogIn className="h-4 w-4 text-white" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-bold text-sm">Chuyển sang chế độ nhân viên</div>
-                    <div className="text-red-100 text-xs mt-0.5">Dành cho nhân viên KFC có tài khoản</div>
+                    <div className="font-bold text-sm">{tr("settings_go_staff")}</div>
+                    <div className="text-red-100 text-xs mt-0.5">{tr("settings_go_staff_d")}</div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-red-200" />
                 </div>
@@ -169,8 +167,8 @@ export default function SettingsPage() {
                     <User className="h-4 w-4 text-gray-500" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-semibold text-sm text-gray-800">Đăng ký tài khoản nhân viên</div>
-                    <div className="text-xs text-gray-400 mt-0.5">Tạo tài khoản mới với mã cửa hàng</div>
+                    <div className="font-semibold text-sm text-gray-800">{tr("settings_register")}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{tr("settings_register_d")}</div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-gray-300" />
                 </div>
@@ -188,14 +186,32 @@ export default function SettingsPage() {
         >
           <div className="bg-gray-200/60 px-4 py-2">
             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
-              <Globe className="h-3.5 w-3.5" /> Chung
+              <Globe className="h-3.5 w-3.5" /> {tr("settings_general")}
             </span>
           </div>
           <SettingRow
             icon={Globe}
-            label="Ngôn ngữ"
-            desc="Tiếng Việt"
-            right={<span className="text-xs text-gray-400 font-medium">VI</span>}
+            label={tr("settings_language")}
+            desc={language === "vi" ? "Tiếng Việt" : "English"}
+            onClick={toggleLanguage}
+            right={
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-lg overflow-hidden border border-gray-200">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); if (language !== "vi") toggleLanguage(); }}
+                    className={`px-3 py-1 text-xs font-bold transition-colors ${language === "vi" ? "bg-[#E4002B] text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                  >
+                    VI
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); if (language !== "en") toggleLanguage(); }}
+                    className={`px-3 py-1 text-xs font-bold transition-colors ${language === "en" ? "bg-[#E4002B] text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                  >
+                    EN
+                  </button>
+                </div>
+              </div>
+            }
           />
         </motion.div>
 
@@ -208,16 +224,15 @@ export default function SettingsPage() {
         >
           <div className="bg-gray-200/60 px-4 py-2">
             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5" /> Về ứng dụng
+              <Info className="h-3.5 w-3.5" /> {tr("settings_about")}
             </span>
           </div>
           <div className="bg-white px-4 py-4 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-[#E4002B] flex items-center justify-center mx-auto mb-3 shadow-md">
-              <span className="text-white font-black text-2xl">K</span>
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/kfc-logo.png" alt="KFC" className="w-14 h-14 object-contain rounded-2xl bg-white mx-auto mb-3 shadow-md p-1" />
             <div className="font-black text-gray-900 text-base">KFC SYNC</div>
-            <div className="text-xs text-gray-400 mt-1">Phiên bản 1.0.0</div>
-            <div className="text-xs text-gray-400 mt-0.5">© 2025 KFC Vietnam · Nhóm 17</div>
+            <div className="text-xs text-gray-400 mt-1">{tr("settings_version")}</div>
+            <div className="text-xs text-gray-400 mt-0.5">{tr("settings_copyright")}</div>
           </div>
         </motion.div>
 

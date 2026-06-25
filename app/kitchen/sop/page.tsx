@@ -5,6 +5,7 @@ import { CheckCircle, Circle, AlertTriangle, Clock, ChevronDown, ChevronRight, S
 import { toast } from "sonner";
 import { sopChecklists, sopCompletions } from "@/lib/data/sop";
 import { employees } from "@/lib/data/employees";
+import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function SOPPage() {
+  const { user } = useAuthStore();
+  const role = user?.role ?? "kitchen";
+  const canSeeHistory = role === "supervisor" || role === "manager";
+  const canSeeAnalytics = role === "manager";
+
   const [selectedChecklist, setSelectedChecklist] = useState(sopChecklists[0]);
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
@@ -68,8 +74,8 @@ export default function SOPPage() {
       <Tabs defaultValue="checklist">
         <TabsList className="mb-6">
           <TabsTrigger value="checklist">✅ Checklist SOP</TabsTrigger>
-          <TabsTrigger value="history">📊 Lịch sử tuân thủ</TabsTrigger>
-          <TabsTrigger value="analytics">📈 Phân tích</TabsTrigger>
+          {canSeeHistory && <TabsTrigger value="history">📊 Lịch sử tuân thủ</TabsTrigger>}
+          {canSeeAnalytics && <TabsTrigger value="analytics">📈 Phân tích</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="checklist">
@@ -221,7 +227,7 @@ export default function SOPPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="history">
+        {canSeeHistory && <TabsContent value="history">
           <div className="space-y-4">
             <h2 className="font-bold text-gray-900">Lịch sử hoàn thành SOP hôm nay</h2>
             {sopCompletions.map((completion) => (
@@ -263,9 +269,9 @@ export default function SOPPage() {
               </Card>
             ))}
           </div>
-        </TabsContent>
+        </TabsContent>}
 
-        <TabsContent value="analytics">
+        {canSeeAnalytics && <TabsContent value="analytics">
           <div className="grid md:grid-cols-3 gap-6">
             {[
               { label: "Tỷ lệ tuân thủ TB hôm nay", value: "81%", color: "text-amber-600", icon: "📋", note: "Cần cải thiện" },
@@ -311,7 +317,7 @@ export default function SOPPage() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        </TabsContent>}
       </Tabs>
     </PageWrapper>
   );

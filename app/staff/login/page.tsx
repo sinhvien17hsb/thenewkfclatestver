@@ -48,9 +48,8 @@ export default function StaffLoginPage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-[#E4002B] flex items-center justify-center mx-auto mb-4 shadow-xl">
-            <span className="text-white font-black text-3xl">K</span>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kfc-logo.png" alt="KFC" className="w-16 h-16 object-contain rounded-2xl bg-white mx-auto mb-4 shadow-xl p-1" />
           <h1 className="text-2xl font-black text-white">KFC Sync</h1>
           <p className="text-gray-500 text-sm mt-1">Đăng nhập nhân viên</p>
         </div>

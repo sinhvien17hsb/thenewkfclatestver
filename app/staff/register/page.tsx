@@ -82,9 +82,8 @@ export default function StaffRegisterPage() {
     <div className="min-h-screen bg-gray-950 py-8 px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-sm mx-auto">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-[#E4002B] flex items-center justify-center mx-auto mb-3">
-            <span className="text-white font-black text-2xl">K</span>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kfc-logo.png" alt="KFC" className="w-12 h-12 object-contain rounded-xl bg-white mx-auto mb-3 p-0.5" />
           <h1 className="text-xl font-black text-white">Tạo tài khoản</h1>
           <p className="text-gray-500 text-sm mt-1">KFC Sync · Nhân viên</p>
         </div>

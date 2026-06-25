@@ -27,55 +27,65 @@ export default function CustomerHome() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24 md:pb-6">
 
-      {/* ===== HERO ===== */}
-      <section className="bg-[#E4002B] text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -top-10 -right-10 w-60 h-60 rounded-full bg-white" />
-          <div className="absolute -bottom-16 -left-10 w-48 h-48 rounded-full bg-white" />
-        </div>
-        <div className="relative max-w-2xl mx-auto px-4 py-8">
-          <div className="flex items-center gap-2 mb-4">
-            <MapPin className="h-4 w-4 text-red-200" />
+      {/* ===== HERO BANNER ===== */}
+      <section className="relative overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/kfc-banner.jpeg"
+          alt="KFC Banner"
+          className="w-full h-56 md:h-72 object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
+        <div className="absolute inset-0 flex flex-col justify-end px-6 pb-6">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2 mb-2"
+          >
+            <MapPin className="h-4 w-4 text-red-300" />
             <span className="text-sm text-red-100 font-medium">KFC Vincom Bà Triệu</span>
-            <span className="ml-auto flex items-center gap-1.5 bg-white/20 rounded-full px-2.5 py-1 text-xs font-semibold">
+            <span className="ml-auto flex items-center gap-1.5 bg-white/20 rounded-full px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
               <span className={`w-1.5 h-1.5 rounded-full ${QUEUE_STATS.openStatus ? "bg-green-300" : "bg-gray-300"}`} />
               {QUEUE_STATS.openStatus ? "Đang mở cửa" : "Đã đóng cửa"}
             </span>
-          </div>
-
+          </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl md:text-4xl font-black mb-1"
+            transition={{ delay: 0.1 }}
+            className="text-3xl md:text-4xl font-black text-white drop-shadow mb-1"
           >
             Xin chào! 👋
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-red-100 text-base mb-6"
+            transition={{ delay: 0.15 }}
+            className="text-red-100 text-sm mb-4"
           >
             Hôm nay bạn muốn ăn gì?
           </motion.p>
-
-          {/* Queue stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white/15 rounded-2xl p-3.5 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-1">
-                <Clock className="h-4 w-4 text-red-200" />
-                <span className="text-xs text-red-100">Thời gian chờ</span>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex gap-3"
+          >
+            <div className="bg-black/40 backdrop-blur-sm rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-white/20">
+              <Clock className="h-4 w-4 text-yellow-300" />
+              <div>
+                <div className="text-[10px] text-gray-300">Thời gian chờ</div>
+                <div className="text-sm font-black text-white">~{QUEUE_STATS.waitTime} phút</div>
               </div>
-              <div className="text-2xl font-black">~{QUEUE_STATS.waitTime} phút</div>
             </div>
-            <div className="bg-white/15 rounded-2xl p-3.5 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-1">
-                <UtensilsCrossed className="h-4 w-4 text-red-200" />
-                <span className="text-xs text-red-100">Đơn đang làm</span>
+            <div className="bg-black/40 backdrop-blur-sm rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-white/20">
+              <UtensilsCrossed className="h-4 w-4 text-yellow-300" />
+              <div>
+                <div className="text-[10px] text-gray-300">Đơn đang làm</div>
+                <div className="text-sm font-black text-white">{QUEUE_STATS.activeOrders} đơn</div>
               </div>
-              <div className="text-2xl font-black">{QUEUE_STATS.activeOrders} đơn</div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 

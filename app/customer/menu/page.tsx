@@ -9,6 +9,7 @@ import { useAppStore } from "@/lib/store";
 import { MENU_CATEGORIES } from "@/lib/types";
 import type { MenuCategory } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
+import { translate } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -28,10 +29,16 @@ interface DbMenuItem {
   prepTime: number;
 }
 
+const CAT_KEYS: Record<string, Parameters<typeof translate>[0]> = {
+  ga_ran: "cat_ga_ran", burger: "cat_burger", combo: "cat_combo",
+  mon_phu: "cat_mon_phu", trang_miem: "cat_trang_miem", do_uong: "cat_do_uong", com: "cat_com",
+};
+
 export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState<MenuCategory | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const { addToCart, cart, cartItemCount } = useAppStore();
+  const { addToCart, cart, cartItemCount, language } = useAppStore();
+  const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
   const count = cartItemCount();
 
   const { data: allItems, loading } = usePolling<DbMenuItem[]>("/api/menu?available=true", 30000);
@@ -72,14 +79,14 @@ export default function MenuPage() {
     <PageWrapper>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Thực đơn KFC</h1>
-          <p className="text-sm text-gray-500">Chọn món yêu thích của bạn</p>
+          <h1 className="text-2xl font-black text-gray-900">{tr("menu_title")}</h1>
+          <p className="text-sm text-gray-500">{tr("menu_subtitle")}</p>
         </div>
         {count > 0 && (
           <Link href="/customer/cart">
             <Button className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
-              Giỏ hàng ({count})
+              {tr("menu_view_cart")} ({count})
             </Button>
           </Link>
         )}
@@ -88,7 +95,7 @@ export default function MenuPage() {
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
-          placeholder="Tìm kiếm món ăn..."
+          placeholder={tr("menu_search")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
@@ -104,7 +111,7 @@ export default function MenuPage() {
               : "bg-white border border-gray-200 text-gray-600 hover:border-[#E4002B] hover:text-[#E4002B]"
           }`}
         >
-          🍽️ Tất cả
+          🍽️ {tr("cat_all")}
         </button>
         {(Object.entries(MENU_CATEGORIES) as [MenuCategory, (typeof MENU_CATEGORIES)[MenuCategory]][]).map(([key, cat]) => (
           <button
@@ -116,7 +123,7 @@ export default function MenuPage() {
                 : "bg-white border border-gray-200 text-gray-600 hover:border-[#E4002B] hover:text-[#E4002B]"
             }`}
           >
-            {cat.emoji} {cat.label}
+            {cat.emoji} {CAT_KEYS[key] ? tr(CAT_KEYS[key]) : cat.label}
           </button>
         ))}
       </div>
@@ -125,11 +132,11 @@ export default function MenuPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Flame className="h-5 w-5 text-[#E4002B]" />
-            <h2 className="font-bold text-gray-900">Phổ biến nhất</h2>
+            <h2 className="font-bold text-gray-900">{tr("menu_popular")}</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {popularItems.map((item) => (
-              <PopularCard key={item.id} item={item} qty={getCartQty(item.id)} onAdd={() => handleAdd(item)} />
+              <PopularCard key={item.id} item={item} qty={getCartQty(item.id)} onAdd={() => handleAdd(item)} addLabel={tr("menu_add")} />
             ))}
           </div>
         </div>
@@ -138,18 +145,18 @@ export default function MenuPage() {
       <div>
         {searchQuery && (
           <div className="mb-4 text-sm text-gray-500">
-            Tìm thấy <strong>{items.length}</strong> kết quả cho &quot;{searchQuery}&quot;
+            {tr("menu_found")} <strong>{items.length}</strong> {tr("menu_results_for")} &quot;{searchQuery}&quot;
           </div>
         )}
         {!searchQuery && activeCategory !== "all" && (
           <h2 className="font-bold text-gray-900 mb-4">
-            {MENU_CATEGORIES[activeCategory as MenuCategory].emoji} {MENU_CATEGORIES[activeCategory as MenuCategory].label}
+            {MENU_CATEGORIES[activeCategory as MenuCategory].emoji} {CAT_KEYS[activeCategory] ? tr(CAT_KEYS[activeCategory]) : MENU_CATEGORIES[activeCategory as MenuCategory].label}
           </h2>
         )}
         {items.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <div className="text-5xl mb-3">🔍</div>
-            <p className="font-medium">Không tìm thấy món ăn phù hợp</p>
+            <p className="font-medium">{tr("menu_no_results")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -160,6 +167,8 @@ export default function MenuPage() {
                   item={item}
                   qty={getCartQty(item.id)}
                   onAdd={() => handleAdd(item)}
+                  prepLabel={tr("menu_prep_min")}
+                  addLabel={tr("menu_add")}
                 />
               ))}
             </AnimatePresence>
@@ -176,7 +185,7 @@ export default function MenuPage() {
           <Link href="/customer/cart">
             <Button size="lg" className="w-full md:w-auto shadow-2xl font-bold">
               <ShoppingCart className="h-5 w-5" />
-              Xem giỏ hàng · {count} món
+              {tr("menu_view_cart")} · {count} {tr("menu_items_unit")}
             </Button>
           </Link>
         </motion.div>
@@ -195,7 +204,7 @@ function ItemImage({ item, className }: { item: DbMenuItem; className: string })
   return <div className={`flex items-center justify-center text-4xl bg-orange-50 ${className}`}>{item.imageEmoji}</div>;
 }
 
-function PopularCard({ item, qty, onAdd }: { item: DbMenuItem; qty: number; onAdd: () => void }) {
+function PopularCard({ item, qty, onAdd, addLabel }: { item: DbMenuItem; qty: number; onAdd: () => void; addLabel: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -207,14 +216,14 @@ function PopularCard({ item, qty, onAdd }: { item: DbMenuItem; qty: number; onAd
         <div className="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">{item.name}</div>
         <div className="text-[#E4002B] font-bold text-sm mb-2">{formatCurrency(item.price)}</div>
         <Button size="sm" onClick={onAdd} className="w-full text-xs">
-          <Plus className="h-3 w-3" /> Thêm
+          <Plus className="h-3 w-3" /> {addLabel}
         </Button>
       </div>
     </motion.div>
   );
 }
 
-function MenuItemCard({ item, qty, onAdd }: { item: DbMenuItem; qty: number; onAdd: () => void }) {
+function MenuItemCard({ item, qty, onAdd, prepLabel, addLabel }: { item: DbMenuItem; qty: number; onAdd: () => void; prepLabel: string; addLabel: string }) {
   const { updateCartQuantity, removeFromCart } = useAppStore();
 
   return (
@@ -236,12 +245,12 @@ function MenuItemCard({ item, qty, onAdd }: { item: DbMenuItem; qty: number; onA
           {item.description && (
             <p className="text-xs text-gray-500 mb-1 line-clamp-2">{item.description}</p>
           )}
-          <div className="text-xs text-gray-400 mb-2">⏱ {item.prepTime} phút</div>
+          <div className="text-xs text-gray-400 mb-2">⏱ {item.prepTime} {prepLabel}</div>
           <div className="flex items-center justify-between">
             <span className="font-black text-[#E4002B]">{formatCurrency(item.price)}</span>
             {qty === 0 ? (
               <Button size="sm" onClick={onAdd} className="h-8 px-3 text-xs">
-                <Plus className="h-3 w-3 mr-1" /> Thêm
+                <Plus className="h-3 w-3 mr-1" /> {addLabel}
               </Button>
             ) : (
               <div className="flex items-center gap-2">

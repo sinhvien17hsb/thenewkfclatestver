@@ -5,20 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Bell, ShoppingCart, Home, ChefHat, BarChart3,
   ClipboardList, Users, Clock, ShieldCheck, LineChart,
-  LogOut, User, Settings, LogIn, UtensilsCrossed, Package, MessageSquare
+  LogOut, User, Settings, UtensilsCrossed, Package, MessageSquare
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useAppStore, useAuthStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { AUTH_ROLE_LABELS, AUTH_ROLE_COLORS, AUTH_ROLE_AVATARS } from "@/lib/types";
-
-const CUSTOMER_NAV = [
-  { href: "/", label: "Trang chủ", icon: Home },
-  { href: "/customer/menu", label: "Thực đơn", icon: UtensilsCrossed },
-  { href: "/customer/orders", label: "Đơn hàng", icon: Package },
-  { href: "/customer/feedback", label: "Đánh giá", icon: MessageSquare },
-];
+import { translate } from "@/lib/i18n";
 
 const KITCHEN_NAV = [
   { href: "/kitchen/orders", label: "Đơn bếp", icon: ChefHat },
@@ -49,11 +43,18 @@ const REDIRECT_MAP: Record<string, string> = {
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { cartItemCount, notificationCount } = useAppStore();
+  const { cartItemCount, notificationCount, language } = useAppStore();
   const { user, logout } = useAuthStore();
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const count = cartItemCount();
+  const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
+
+  const CUSTOMER_NAV = [
+    { href: "/", label: tr("nav_home"), icon: Home },
+    { href: "/customer/orders", label: tr("nav_orders"), icon: Package },
+    { href: "/customer/feedback", label: tr("nav_feedback"), icon: MessageSquare },
+  ];
 
   const navLinks = user
     ? user.role === "manager"
@@ -89,10 +90,9 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full bg-[#1A1A1A] border-b border-white/10 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
-        <Link href={user ? (REDIRECT_MAP[user.role] ?? "/") : "/"} className="flex-shrink-0 flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-[#E4002B] flex items-center justify-center font-black text-white text-lg shadow-md">
-            K
-          </div>
+        <Link href="/" className="flex-shrink-0 flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kfc-logo.png" alt="KFC" className="w-10 h-10 object-contain rounded-full bg-white p-0.5" />
           <div className="hidden sm:block">
             <div className="font-black text-white text-lg leading-none tracking-wide">KFC SYNC</div>
             {user && (
@@ -120,6 +120,18 @@ export function Navbar() {
               {label}
             </Link>
           ))}
+          <Link
+            href="/customer/menu"
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all ml-2 border",
+              isActive("/customer/menu")
+                ? "bg-[#E4002B] text-white border-[#E4002B]"
+                : "border-[#E4002B] text-[#E4002B] hover:bg-[#E4002B] hover:text-white"
+            )}
+          >
+            <UtensilsCrossed className="h-3.5 w-3.5" />
+            {tr("nav_menu")}
+          </Link>
         </nav>
 
         {/* Right actions */}
@@ -165,7 +177,7 @@ export function Navbar() {
           </button>
 
           {/* Profile dropdown (employee) OR Login button (customer) */}
-          {user ? (
+          {user && (
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
@@ -191,15 +203,12 @@ export function Navbar() {
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
                   >
-                    {/* Header */}
                     <div className="bg-[#1A1A1A] px-4 py-3">
                       <div className="text-sm font-bold text-white">{user.name}</div>
                       <div className={`text-xs mt-0.5 px-2 py-0.5 rounded-full inline-block font-medium ${roleColor?.bg} ${roleColor?.text}`}>
                         {AUTH_ROLE_LABELS[user.role]}
                       </div>
                     </div>
-
-                    {/* Menu items */}
                     <div className="py-1">
                       <Link
                         href="/employee/profile"
@@ -227,14 +236,6 @@ export function Navbar() {
                 )}
               </AnimatePresence>
             </div>
-          ) : (
-            <Link
-              href="/employee/login"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#E4002B] hover:bg-[#BB0020] text-white text-sm font-semibold transition-colors"
-            >
-              <LogIn className="h-4 w-4" />
-              <span className="hidden sm:inline">Nhân viên</span>
-            </Link>
           )}
         </div>
       </div>
@@ -242,7 +243,17 @@ export function Navbar() {
       {/* Mobile Bottom Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#1A1A1A] border-t border-white/10 safe-area-bottom">
         <div className="flex items-center justify-around px-2 py-2">
-          {navLinks.slice(0, 4).map(({ href, label, icon: Icon }) => (
+          <Link
+            href="/customer/menu"
+            className={cn(
+              "flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all",
+              isActive("/customer/menu") ? "text-[#E4002B]" : "text-gray-500"
+            )}
+          >
+            <UtensilsCrossed className="h-5 w-5" />
+            <span className="text-[10px] font-medium">{tr("nav_menu")}</span>
+          </Link>
+          {navLinks.slice(0, 3).map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
