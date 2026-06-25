@@ -29,7 +29,7 @@ Quy tắc:
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const result = await model.generateContent(`${systemPrompt}\n\nKhách hàng: ${message}`);
     const text = result.response.text();
     return NextResponse.json({ reply: text });
