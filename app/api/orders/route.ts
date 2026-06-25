@@ -37,8 +37,7 @@ export async function POST(req: Request) {
 
     const total = isDelivery ? subtotal + DELIVERY_FEE : subtotal;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const order = await (prisma.order.create as any)({
+    const order = await prisma.order.create({
       data: {
         orderNumber: generateOrderNumber(),
         tableNumber: isDelivery ? "DELIVERY" : String(tableNumber),
