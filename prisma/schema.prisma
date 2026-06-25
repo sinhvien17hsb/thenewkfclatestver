@@ -39,15 +39,18 @@ model MenuItem {
 }
 
 model Order {
-  id            String   @id @default(cuid())
-  orderNumber   String   @unique
-  tableNumber   String
-  customerName  String?
-  status        String   @default("queued")
-  totalAmount   Float
-  estimatedTime Int      @default(15)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(cuid())
+  orderNumber     String   @unique
+  tableNumber     String
+  customerName    String?
+  orderType       String   @default("dine_in") // dine_in | delivery
+  deliveryAddress String?
+  deliveryPhone   String?
+  status          String   @default("queued")
+  totalAmount     Float
+  estimatedTime   Int      @default(15)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   items         OrderItem[]
   statusHistory OrderStatusHistory[]

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, QrCode, MapPin } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, QrCode, MapPin, Truck, UtensilsCrossed, Phone } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,30 +15,51 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
+const DELIVERY_FEE = 15000;
+
 export default function CartPage() {
   const { cart, updateCartQuantity, removeFromCart, cartTotal, clearCart, addCustomerOrder, tableNumber, setTableNumber, language } = useAppStore();
   const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
+  const [orderType, setOrderType] = useState<"dine_in" | "delivery">("dine_in");
   const [customerName, setCustomerName] = useState("");
   const [tableInput, setTableInput] = useState(tableNumber?.toString() ?? "");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryPhone, setDeliveryPhone] = useState("");
   const [isPlacing, setIsPlacing] = useState(false);
   const router = useRouter();
-  const total = cartTotal();
+  const subtotal = cartTotal();
+  const total = orderType === "delivery" ? subtotal + DELIVERY_FEE : subtotal;
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
-    const tbl = tableInput ? parseInt(tableInput) : undefined;
-    if (!tbl) { toast.error("Vui lòng nhập số bàn."); return; }
-    setTableNumber(tbl);
+
+    if (orderType === "dine_in") {
+      const tbl = tableInput ? parseInt(tableInput) : undefined;
+      if (!tbl) { toast.error("Vui lòng nhập số bàn."); return; }
+      setTableNumber(tbl);
+    } else {
+      if (!deliveryAddress.trim()) { toast.error("Vui lòng nhập địa chỉ giao hàng."); return; }
+      if (!deliveryPhone.trim()) { toast.error("Vui lòng nhập số điện thoại."); return; }
+    }
+
     setIsPlacing(true);
     try {
+      const body: Record<string, unknown> = {
+        orderType,
+        customerName: customerName || "Khách hàng",
+        items: cart.map((c) => ({ menuItemId: c.menuItem.id, quantity: c.quantity, notes: c.notes })),
+      };
+      if (orderType === "dine_in") {
+        body.tableNumber = parseInt(tableInput);
+      } else {
+        body.deliveryAddress = deliveryAddress.trim();
+        body.deliveryPhone = deliveryPhone.trim();
+      }
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tableNumber: tbl,
-          customerName: customerName || "Khách hàng",
-          items: cart.map((c) => ({ menuItemId: c.menuItem.id, quantity: c.quantity, notes: c.notes })),
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -50,6 +71,9 @@ export default function CartPage() {
         orderNumber: order.orderNumber,
         tableNumber: order.tableNumber,
         customerName: order.customerName,
+        orderType: order.orderType,
+        deliveryAddress: order.deliveryAddress,
+        deliveryPhone: order.deliveryPhone,
         status: order.status,
         totalAmount: order.totalAmount,
         estimatedTime: order.estimatedTime,
@@ -61,10 +85,10 @@ export default function CartPage() {
         })),
       });
       clearCart();
-      toast.success("Đặt hàng thành công!", {
-        description: `Mã đơn: ${order.orderNumber} · Bàn ${tbl}`,
-        duration: 4000,
-      });
+      const desc = orderType === "delivery"
+        ? `Mã đơn: ${order.orderNumber} · Giao đến ${deliveryAddress}`
+        : `Mã đơn: ${order.orderNumber} · Bàn ${tableInput}`;
+      toast.success("Đặt hàng thành công!", { description: desc, duration: 4000 });
       router.push("/customer/orders");
     } catch (e: unknown) {
       toast.error((e as Error).message);
@@ -103,6 +127,7 @@ export default function CartPage() {
       </div>
 
       <div className="grid md:grid-cols-5 gap-6">
+        {/* Cart items */}
         <div className="md:col-span-3 space-y-3">
           <AnimatePresence>
             {cart.map(({ menuItem, quantity }) => (
@@ -156,40 +181,132 @@ export default function CartPage() {
           </AnimatePresence>
         </div>
 
+        {/* Right panel */}
         <div className="md:col-span-2 space-y-4">
+          {/* Order type toggle */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-[#E4002B]" /> {tr("cart_table_info")}
-              </CardTitle>
+              <CardTitle className="text-base">{tr("cart_order_type")}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">{tr("cart_table_num")}</label>
-                <Input
-                  type="number"
-                  placeholder={tr("cart_table_ph")}
-                  value={tableInput}
-                  onChange={(e) => setTableInput(e.target.value)}
-                  min="1"
-                  max="50"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">{tr("cart_name_label")}</label>
-                <Input
-                  placeholder={tr("cart_name_ph")}
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500 bg-blue-50 rounded-lg p-2.5">
-                <QrCode className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                <span>{tr("cart_qr")}</span>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setOrderType("dine_in")}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                    orderType === "dine_in"
+                      ? "border-[#E4002B] bg-red-50 text-[#E4002B]"
+                      : "border-gray-200 text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <UtensilsCrossed className="h-5 w-5" />
+                  <span className="text-xs font-semibold">{tr("cart_dine_in")}</span>
+                </button>
+                <button
+                  onClick={() => setOrderType("delivery")}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                    orderType === "delivery"
+                      ? "border-[#E4002B] bg-red-50 text-[#E4002B]"
+                      : "border-gray-200 text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <Truck className="h-5 w-5" />
+                  <span className="text-xs font-semibold">{tr("cart_delivery")}</span>
+                </button>
               </div>
             </CardContent>
           </Card>
 
+          {/* Dine-in or Delivery info */}
+          <AnimatePresence mode="wait">
+            {orderType === "dine_in" ? (
+              <motion.div key="dine_in" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-[#E4002B]" /> {tr("cart_table_info")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 mb-1 block">{tr("cart_table_num")}</label>
+                      <Input
+                        type="number"
+                        placeholder={tr("cart_table_ph")}
+                        value={tableInput}
+                        onChange={(e) => setTableInput(e.target.value)}
+                        min="1"
+                        max="50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 mb-1 block">{tr("cart_name_label")}</label>
+                      <Input
+                        placeholder={tr("cart_name_ph")}
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 bg-blue-50 rounded-lg p-2.5">
+                      <QrCode className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                      <span>{tr("cart_qr")}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ) : (
+              <motion.div key="delivery" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-[#E4002B]" /> {tr("cart_delivery_info")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 mb-1 block">{tr("cart_name_label")}</label>
+                      <Input
+                        placeholder={tr("cart_name_ph")}
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 mb-1 block">{tr("cart_delivery_phone")}</label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                        <Input
+                          type="tel"
+                          placeholder={tr("cart_delivery_phone_ph")}
+                          value={deliveryPhone}
+                          onChange={(e) => setDeliveryPhone(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 mb-1 block">{tr("cart_delivery_address")}</label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 h-3.5 w-3.5 text-gray-400" />
+                        <textarea
+                          placeholder={tr("cart_delivery_address_ph")}
+                          value={deliveryAddress}
+                          onChange={(e) => setDeliveryAddress(e.target.value)}
+                          rows={3}
+                          className="w-full pl-9 pr-3 py-2 text-sm border border-input rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 bg-orange-50 rounded-lg p-2.5">
+                      <Truck className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                      <span>{tr("cart_delivery_note")}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Order summary */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -206,11 +323,17 @@ export default function CartPage() {
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">{tr("cart_subtotal")}</span>
-                <span className="font-bold">{formatCurrency(total)}</span>
+                <span className="font-bold">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">{tr("cart_fee")}</span>
-                <Badge variant="secondary" className="text-xs">{tr("cart_free")}</Badge>
+                <span className="text-sm text-gray-500">
+                  {orderType === "delivery" ? tr("cart_delivery_fee") : tr("cart_fee")}
+                </span>
+                {orderType === "delivery" ? (
+                  <span className="font-medium text-gray-900">{formatCurrency(DELIVERY_FEE)}</span>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">{tr("cart_free")}</Badge>
+                )}
               </div>
               <Separator />
               <div className="flex justify-between items-center">

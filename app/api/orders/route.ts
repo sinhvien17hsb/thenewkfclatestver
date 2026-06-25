@@ -8,31 +8,46 @@ function generateOrderNumber(): string {
   return `KFC${time}${rand}`;
 }
 
+const DELIVERY_FEE = 15000;
+
 export async function POST(req: Request) {
   try {
-    const { tableNumber, customerName, items } = await req.json();
+    const { tableNumber, customerName, items, orderType, deliveryAddress, deliveryPhone } = await req.json();
 
-    if (!tableNumber || !items || items.length === 0) {
+    const isDelivery = orderType === "delivery";
+
+    if (!items || items.length === 0) {
       return NextResponse.json({ error: "Thông tin đơn hàng không hợp lệ." }, { status: 400 });
+    }
+    if (isDelivery && (!deliveryAddress || !deliveryPhone)) {
+      return NextResponse.json({ error: "Vui lòng nhập địa chỉ và số điện thoại giao hàng." }, { status: 400 });
+    }
+    if (!isDelivery && !tableNumber) {
+      return NextResponse.json({ error: "Vui lòng nhập số bàn." }, { status: 400 });
     }
 
     const menuItems = await prisma.menuItem.findMany({
       where: { id: { in: items.map((i: { menuItemId: string }) => i.menuItemId) } },
     });
 
-    const total = items.reduce((sum: number, item: { menuItemId: string; quantity: number }) => {
+    const subtotal = items.reduce((sum: number, item: { menuItemId: string; quantity: number }) => {
       const mi = menuItems.find((m) => m.id === item.menuItemId);
       return sum + (mi?.price ?? 0) * item.quantity;
     }, 0);
 
+    const total = isDelivery ? subtotal + DELIVERY_FEE : subtotal;
+
     const order = await prisma.order.create({
       data: {
         orderNumber: generateOrderNumber(),
-        tableNumber: String(tableNumber),
+        tableNumber: isDelivery ? "DELIVERY" : String(tableNumber),
         customerName: customerName ?? null,
+        orderType: isDelivery ? "delivery" : "dine_in",
+        deliveryAddress: isDelivery ? deliveryAddress : null,
+        deliveryPhone: isDelivery ? deliveryPhone : null,
         status: "queued",
         totalAmount: total,
-        estimatedTime: Math.max(10, items.length * 4),
+        estimatedTime: isDelivery ? Math.max(30, items.length * 4 + 20) : Math.max(10, items.length * 4),
         items: {
           create: items.map((item: { menuItemId: string; quantity: number; notes?: string }) => {
             const mi = menuItems.find((m) => m.id === item.menuItemId)!;

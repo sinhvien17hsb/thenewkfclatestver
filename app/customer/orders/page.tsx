@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, Clock, ChefHat, ShieldCheck, Package, ArrowLeft, RefreshCw, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, ChefHat, ShieldCheck, Package, ArrowLeft, RefreshCw, Loader2, Truck, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { formatCurrency, getStatusLabel, formatTimeAgo } from "@/lib/utils";
@@ -18,6 +18,9 @@ interface TrackedOrder {
   orderNumber: string;
   tableNumber?: string;
   customerName?: string | null;
+  orderType?: string;
+  deliveryAddress?: string | null;
+  deliveryPhone?: string | null;
   status: string;
   totalAmount: number;
   estimatedTime: number;
@@ -139,9 +142,20 @@ function OrderTrackingCard({ order, language }: { order: TrackedOrder; language:
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="font-black text-lg text-gray-900">{order.orderNumber}</div>
-              <div className="text-sm text-gray-500">
-                {order.tableNumber ? `${tr("orders_table")} ${order.tableNumber}` : tr("orders_takeaway")} · {order.customerName ?? (language === "en" ? "Guest" : "Khách hàng")}
+              <div className="text-sm text-gray-500 flex items-center gap-1">
+                {order.orderType === "delivery" ? (
+                  <><Truck className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />{tr("orders_delivery")}</>
+                ) : (
+                  order.tableNumber ? `${tr("orders_table")} ${order.tableNumber}` : tr("orders_takeaway")
+                )}
+                {" · "}{order.customerName ?? (language === "en" ? "Guest" : "Khách hàng")}
               </div>
+              {order.orderType === "delivery" && order.deliveryAddress && (
+                <div className="text-xs text-orange-600 mt-0.5 flex items-start gap-1">
+                  <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                  <span>{order.deliveryAddress}</span>
+                </div>
+              )}
               <div className="text-xs text-gray-400 mt-0.5">{formatTimeAgo(order.createdAt)}</div>
             </div>
             <div className="text-right">

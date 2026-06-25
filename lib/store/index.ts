@@ -12,6 +12,9 @@ export interface CustomerOrder {
   orderNumber: string;
   tableNumber?: string;
   customerName?: string | null;
+  orderType?: string;
+  deliveryAddress?: string | null;
+  deliveryPhone?: string | null;
   status: string;
   totalAmount: number;
   estimatedTime: number;
