@@ -29,6 +29,9 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
   const { user, logout, login } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -37,6 +40,8 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
       router.replace("/manager/shifts");
     }
   }, [user, pathname, router]);
+
+  if (!mounted) return null;
 
   if (!user) {
     return (

@@ -1,105 +1,60 @@
 "use client";
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Eye, EyeOff, Loader2, LogIn } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useAuthStore } from "@/lib/store";
+import { AUTH_ROLE_LABELS, AUTH_ROLE_AVATARS } from "@/lib/types";
+
+const ROLES = [
+  { id: "kitchen01",    role: "kitchen" as const,    border: "border-orange-700 hover:border-orange-500", desc: "Quản lý đơn bếp · SOP" },
+  { id: "supervisor01", role: "supervisor" as const,  border: "border-purple-700 hover:border-purple-500", desc: "Bếp + Ca làm việc" },
+  { id: "manager01",    role: "manager" as const,     border: "border-green-700 hover:border-green-500",   desc: "Toàn quyền · Dashboard · Báo cáo" },
+];
+
+const REDIRECT_MAP: Record<string, string> = {
+  kitchen: "/kitchen/orders",
+  supervisor: "/manager/shifts",
+  manager: "/manager/dashboard",
+};
 
 export default function StaffLoginPage() {
+  const { login, user } = useAuthStore();
   const router = useRouter();
-  const [employeeId, setEmployeeId] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    if (!employeeId || !password) { setError("Vui lòng điền đầy đủ thông tin."); return; }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success(`Chào mừng, ${data.user.name}!`);
-      const roleRoutes: Record<string, string> = {
-        MANAGER: "/manager/dashboard",
-        CASHIER: "/staff/service-requests",
-        KITCHEN: "/staff/kitchen",
-      };
-      router.push(roleRoutes[data.user.role] ?? "/staff/kitchen");
-    } catch (e: unknown) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    if (user) router.replace(REDIRECT_MAP[user.role] ?? "/kitchen/orders");
+  }, [user, router]);
+
+  const handleRole = (id: string, role: string) => {
+    login(id, "123456");
+    router.replace(REDIRECT_MAP[role] ?? "/kitchen/orders");
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
-        {/* Logo */}
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+      <div className="w-full max-w-xs">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/kfc-logo.png" alt="KFC" className="w-16 h-16 object-contain rounded-2xl bg-white mx-auto mb-4 shadow-xl p-1" />
-          <h1 className="text-2xl font-black text-white">The New KFC</h1>
-          <p className="text-gray-500 text-sm mt-1">Đăng nhập nhân viên</p>
+          <img src="/kfc-logo.png" alt="KFC" className="w-16 h-16 mx-auto mb-3 rounded-full bg-white p-1 object-contain" />
+          <h2 className="text-white text-2xl font-black">The New KFC</h2>
+          <p className="text-gray-400 text-sm mt-1">Chọn vai trò để tiếp tục</p>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="bg-red-900/30 border border-red-800 text-red-300 rounded-xl px-4 py-3 text-sm">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mã nhân viên</label>
-            <Input
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-              placeholder="VD: KFC001"
-              className="bg-gray-900 border-gray-800 text-white placeholder:text-gray-600 rounded-xl h-11 focus:border-[#E4002B]"
-              autoComplete="username"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mật khẩu</label>
-            <div className="relative">
-              <Input
-                type={showPw ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••"
-                className="bg-gray-900 border-gray-800 text-white placeholder:text-gray-600 rounded-xl h-11 pr-10 focus:border-[#E4002B]"
-                autoComplete="current-password"
-              />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
-                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-
-          <Button type="submit" className="w-full h-11 rounded-xl text-base" disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogIn className="h-4 w-4 mr-2" />}
-            Đăng nhập
-          </Button>
-        </form>
-
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Chưa có tài khoản?{" "}
-          <Link href="/staff/register" className="text-[#E4002B] font-semibold hover:underline">Đăng ký</Link>
-        </p>
-      </motion.div>
+        <div className="space-y-3">
+          {ROLES.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => handleRole(r.id, r.role)}
+              className={`w-full flex items-center gap-4 bg-gray-900 border-2 ${r.border} rounded-2xl px-5 py-4 transition-all text-left group`}
+            >
+              <span className="text-3xl">{AUTH_ROLE_AVATARS[r.role]}</span>
+              <div>
+                <div className="text-white font-bold text-sm">{AUTH_ROLE_LABELS[r.role]}</div>
+                <div className="text-gray-500 text-xs mt-0.5 group-hover:text-gray-300 transition-colors">{r.desc}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+        <p className="text-center text-xs text-gray-600 mt-6">Không cần mật khẩu</p>
+      </div>
     </div>
   );
 }

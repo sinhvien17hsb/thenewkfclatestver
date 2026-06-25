@@ -1,12 +1,13 @@
 "use client";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 import { AUTH_ROLE_LABELS, AUTH_ROLE_AVATARS } from "@/lib/types";
 
 const ROLES = [
-  { id: "kitchen01",    role: "kitchen" as const,    desc: "Quản lý đơn bếp · SOP",               color: "border-orange-700 hover:border-orange-500" },
-  { id: "supervisor01", role: "supervisor" as const,  desc: "Bếp + Ca làm việc",                    color: "border-purple-700 hover:border-purple-500" },
-  { id: "manager01",    role: "manager" as const,     desc: "Toàn quyền · Dashboard · Báo cáo",    color: "border-green-700 hover:border-green-500" },
+  { id: "kitchen01",    role: "kitchen" as const,    border: "border-orange-700 hover:border-orange-500", desc: "Quản lý đơn bếp · SOP" },
+  { id: "supervisor01", role: "supervisor" as const,  border: "border-purple-700 hover:border-purple-500", desc: "Bếp + Ca làm việc" },
+  { id: "manager01",    role: "manager" as const,     border: "border-green-700 hover:border-green-500",   desc: "Toàn quyền · Dashboard · Báo cáo" },
 ];
 
 function RolePickerOverlay() {
@@ -25,7 +26,7 @@ function RolePickerOverlay() {
             <button
               key={r.id}
               onClick={() => login(r.id, "123456")}
-              className={`w-full flex items-center gap-4 bg-gray-900 border-2 ${r.color} rounded-2xl px-5 py-4 transition-all text-left group`}
+              className={`w-full flex items-center gap-4 bg-gray-900 border-2 ${r.border} rounded-2xl px-5 py-4 transition-all text-left group`}
             >
               <span className="text-3xl">{AUTH_ROLE_AVATARS[r.role]}</span>
               <div>
@@ -45,6 +46,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, canAccess } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  // Wait for Zustand to rehydrate from localStorage before showing picker
+  if (!mounted) return null;
 
   if (!user) return <RolePickerOverlay />;
 
