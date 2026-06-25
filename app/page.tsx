@@ -9,6 +9,7 @@ import { useAppStore } from "@/lib/store";
 import { getPopularItems } from "@/lib/data/menu";
 import { MENU_CATEGORIES } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
+import { translate } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 
 const QUEUE_STATS = { waitTime: 12, activeOrders: 8, openStatus: true };
@@ -20,7 +21,8 @@ const categories = Object.entries(MENU_CATEGORIES).map(([key, val]) => ({
 }));
 
 export default function CustomerHome() {
-  const { addToCart, cartItemCount } = useAppStore();
+  const { addToCart, cartItemCount, language } = useAppStore();
+  const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
   const popular = getPopularItems().slice(0, 6);
   const count = cartItemCount();
 
@@ -46,7 +48,7 @@ export default function CustomerHome() {
             <span className="text-sm text-red-100 font-medium">KFC Vincom Bà Triệu</span>
             <span className="ml-auto flex items-center gap-1.5 bg-white/20 rounded-full px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
               <span className={`w-1.5 h-1.5 rounded-full ${QUEUE_STATS.openStatus ? "bg-green-300" : "bg-gray-300"}`} />
-              {QUEUE_STATS.openStatus ? "Đang mở cửa" : "Đã đóng cửa"}
+              {QUEUE_STATS.openStatus ? tr("home_open") : tr("home_closed")}
             </span>
           </motion.div>
           <motion.h1
@@ -55,7 +57,7 @@ export default function CustomerHome() {
             transition={{ delay: 0.1 }}
             className="text-3xl md:text-4xl font-black text-white drop-shadow mb-1"
           >
-            Xin chào! 👋
+            {language === "en" ? "Hello! 👋" : "Xin chào! 👋"}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
@@ -63,7 +65,7 @@ export default function CustomerHome() {
             transition={{ delay: 0.15 }}
             className="text-red-100 text-sm mb-4"
           >
-            Hôm nay bạn muốn ăn gì?
+            {language === "en" ? "What would you like today?" : "Hôm nay bạn muốn ăn gì?"}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -74,15 +76,15 @@ export default function CustomerHome() {
             <div className="bg-black/40 backdrop-blur-sm rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-white/20">
               <Clock className="h-4 w-4 text-yellow-300" />
               <div>
-                <div className="text-[10px] text-gray-300">Thời gian chờ</div>
-                <div className="text-sm font-black text-white">~{QUEUE_STATS.waitTime} phút</div>
+                <div className="text-[10px] text-gray-300">{tr("home_wait_time")}</div>
+                <div className="text-sm font-black text-white">~{QUEUE_STATS.waitTime} {language === "en" ? "min" : "phút"}</div>
               </div>
             </div>
             <div className="bg-black/40 backdrop-blur-sm rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-white/20">
               <UtensilsCrossed className="h-4 w-4 text-yellow-300" />
               <div>
-                <div className="text-[10px] text-gray-300">Đơn đang làm</div>
-                <div className="text-sm font-black text-white">{QUEUE_STATS.activeOrders} đơn</div>
+                <div className="text-[10px] text-gray-300">{tr("home_active_orders")}</div>
+                <div className="text-sm font-black text-white">{QUEUE_STATS.activeOrders} {language === "en" ? "orders" : "đơn"}</div>
               </div>
             </div>
           </motion.div>
@@ -96,10 +98,10 @@ export default function CustomerHome() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-[#E4002B]" />
-              <h2 className="font-black text-gray-900 text-base">Phổ biến hôm nay</h2>
+              <h2 className="font-black text-gray-900 text-base">{tr("home_popular")}</h2>
             </div>
             <Link href="/customer/menu" className="text-xs text-[#E4002B] font-semibold flex items-center gap-1">
-              Xem thêm <ChevronRight className="h-3.5 w-3.5" />
+              {tr("home_see_more")} <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
@@ -142,7 +144,7 @@ export default function CustomerHome() {
         <section>
           <div className="flex items-center gap-2 mb-3">
             <Star className="h-4 w-4 text-[#E4002B]" />
-            <h2 className="font-black text-gray-900 text-base">Danh mục</h2>
+            <h2 className="font-black text-gray-900 text-base">{tr("home_categories")}</h2>
           </div>
 
           <div className="grid grid-cols-3 gap-2.5">
@@ -169,16 +171,16 @@ export default function CustomerHome() {
         <Link href="/customer/menu">
           <Button className="w-full h-13 text-base rounded-2xl shadow-md">
             <UtensilsCrossed className="h-5 w-5 mr-2" />
-            Xem toàn bộ thực đơn
+            {tr("home_view_all_menu")}
           </Button>
         </Link>
 
         {/* ===== QUICK LINKS ===== */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { href: "/customer/orders", icon: Package, label: "Đơn hàng", desc: "Theo dõi đơn" },
-            { href: "/customer/cart", icon: ShoppingCart, label: "Giỏ hàng", desc: count > 0 ? `${count} món` : "Trống" },
-            { href: "/customer/feedback", icon: MessageSquare, label: "Đánh giá", desc: "Góp ý dịch vụ" },
+            { href: "/customer/orders", icon: Package, label: tr("nav_orders"), desc: tr("home_track_orders") },
+            { href: "/customer/cart", icon: ShoppingCart, label: tr("cart_title"), desc: count > 0 ? `${count} ${tr("menu_items_unit")}` : tr("home_cart_empty") },
+            { href: "/customer/feedback", icon: MessageSquare, label: tr("nav_feedback"), desc: tr("home_feedback_desc") },
           ].map(({ href, icon: Icon, label, desc }) => (
             <Link key={href} href={href}>
               <div className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100 hover:border-[#E4002B]/30 transition-all">

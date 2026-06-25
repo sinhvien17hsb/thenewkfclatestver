@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Star, Send, CheckCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useAppStore } from "@/lib/store";
+import { translate } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PageWrapper } from "@/components/layout/PageWrapper";
@@ -11,14 +13,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { feedbackData } from "@/lib/data/analytics";
 import { formatTimeAgo } from "@/lib/utils";
 
-const CRITERIA = [
-  { key: "foodQuality", label: "Chất lượng món ăn", emoji: "🍗" },
-  { key: "service", label: "Chất lượng dịch vụ", emoji: "👨‍💼" },
-  { key: "cleanliness", label: "Vệ sinh cơ sở", emoji: "✨" },
-  { key: "waitingTime", label: "Thời gian chờ", emoji: "⏱️" },
+const CRITERIA_KEYS = [
+  { key: "foodQuality",  labelKey: "feedback_food"    as const, emoji: "🍗" },
+  { key: "service",      labelKey: "feedback_service" as const, emoji: "👨‍💼" },
+  { key: "cleanliness",  labelKey: "feedback_clean"   as const, emoji: "✨" },
+  { key: "waitingTime",  labelKey: "feedback_wait"    as const, emoji: "⏱️" },
 ] as const;
 
 export default function FeedbackPage() {
+  const { language } = useAppStore();
+  const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
+
   const [ratings, setRatings] = useState({ foodQuality: 0, service: 0, cleanliness: 0, waitingTime: 0 });
   const [hoveredRatings, setHoveredRatings] = useState({ foodQuality: 0, service: 0, cleanliness: 0, waitingTime: 0 });
   const [comment, setComment] = useState("");
@@ -27,14 +32,14 @@ export default function FeedbackPage() {
 
   const handleSubmit = async () => {
     if (Object.values(ratings).some((r) => r === 0)) {
-      toast.error("Vui lòng đánh giá tất cả các tiêu chí");
+      toast.error(tr("feedback_all_required"));
       return;
     }
     setSubmitting(true);
     await new Promise((r) => setTimeout(r, 1200));
     setSubmitting(false);
     setSubmitted(true);
-    toast.success("Cảm ơn bạn đã đánh giá!", { description: "Phản hồi của bạn giúp chúng tôi cải thiện dịch vụ." });
+    toast.success(tr("feedback_success"), { description: tr("feedback_success_d") });
   };
 
   const avgRating = Object.values(ratings).reduce((a, b) => a + b, 0) / 4;
@@ -48,15 +53,15 @@ export default function FeedbackPage() {
               <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
           </motion.div>
-          <h2 className="text-2xl font-black text-gray-900 mb-2">Cảm ơn bạn! 🙏</h2>
-          <p className="text-gray-500 mb-2">Đánh giá của bạn đã được gửi thành công.</p>
-          <p className="text-sm text-gray-400 mb-8">Điểm trung bình: <strong className="text-[#E4002B]">{avgRating.toFixed(1)}/5 ⭐</strong></p>
+          <h2 className="text-2xl font-black text-gray-900 mb-2">{tr("feedback_thanks")}</h2>
+          <p className="text-gray-500 mb-2">{tr("feedback_thanks_sent")}</p>
+          <p className="text-sm text-gray-400 mb-8">{tr("feedback_avg_score")}: <strong className="text-[#E4002B]">{avgRating.toFixed(1)}/5 ⭐</strong></p>
           <div className="flex gap-3 justify-center">
             <Link href="/customer/menu">
-              <Button>Đặt thêm món</Button>
+              <Button>{tr("feedback_order_more")}</Button>
             </Link>
             <Link href="/">
-              <Button variant="outline">Trang chủ</Button>
+              <Button variant="outline">{tr("feedback_home")}</Button>
             </Link>
           </div>
         </div>
@@ -73,23 +78,22 @@ export default function FeedbackPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Đánh giá trải nghiệm</h1>
-          <p className="text-sm text-gray-500">Ý kiến của bạn giúp KFC cải thiện</p>
+          <h1 className="text-2xl font-black text-gray-900">{tr("feedback_title")}</h1>
+          <p className="text-sm text-gray-500">{tr("feedback_subtitle")}</p>
         </div>
       </div>
 
       <div className="space-y-4">
-        {/* Rating card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Đánh giá theo tiêu chí</CardTitle>
+            <CardTitle className="text-base">{tr("feedback_criteria")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {CRITERIA.map(({ key, label, emoji }) => (
+            {CRITERIA_KEYS.map(({ key, labelKey, emoji }) => (
               <div key={key}>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">{emoji}</span>
-                  <span className="font-medium text-gray-900">{label}</span>
+                  <span className="font-medium text-gray-900">{tr(labelKey)}</span>
                   {ratings[key] > 0 && (
                     <span className="ml-auto text-sm font-bold text-[#E4002B]">
                       {ratings[key]}/5
@@ -120,19 +124,18 @@ export default function FeedbackPage() {
           </CardContent>
         </Card>
 
-        {/* Comment */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Bình luận thêm (tùy chọn)</CardTitle>
+            <CardTitle className="text-base">{tr("feedback_comment_title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea
-              placeholder="Chia sẻ cảm nhận của bạn về lần đến thăm này..."
+              placeholder={tr("feedback_comment_ph")}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={4}
             />
-            <p className="text-xs text-gray-400 mt-2">{comment.length}/500 ký tự</p>
+            <p className="text-xs text-gray-400 mt-2">{comment.length}/500 {tr("feedback_chars")}</p>
           </CardContent>
         </Card>
 
@@ -145,20 +148,19 @@ export default function FeedbackPage() {
           {submitting ? (
             <span className="flex items-center gap-2">
               <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-              Đang gửi...
+              {tr("feedback_submitting")}
             </span>
           ) : (
             <>
               <Send className="h-4 w-4" />
-              Gửi đánh giá
+              {tr("feedback_submit")}
             </>
           )}
         </Button>
       </div>
 
-      {/* Recent feedback */}
       <div className="mt-8">
-        <h2 className="font-bold text-gray-900 mb-4">Phản hồi gần đây từ khách hàng</h2>
+        <h2 className="font-bold text-gray-900 mb-4">{tr("feedback_recent")}</h2>
         <div className="space-y-3">
           {feedbackData.slice(0, 3).map((fb) => (
             <Card key={fb.id}>
@@ -178,7 +180,9 @@ export default function FeedbackPage() {
                     fb.sentiment === "negative" ? "bg-red-100 text-red-700" :
                     "bg-gray-100 text-gray-600"
                   }`}>
-                    {fb.sentiment === "positive" ? "😊 Tích cực" : fb.sentiment === "negative" ? "😞 Tiêu cực" : "😐 Trung lập"}
+                    {fb.sentiment === "positive" ? (language === "en" ? "😊 Positive" : "😊 Tích cực") :
+                     fb.sentiment === "negative" ? (language === "en" ? "😞 Negative" : "😞 Tiêu cực") :
+                     (language === "en" ? "😐 Neutral" : "😐 Trung lập")}
                   </span>
                   <span className="text-xs text-gray-400">{formatTimeAgo(fb.createdAt)}</span>
                 </div>

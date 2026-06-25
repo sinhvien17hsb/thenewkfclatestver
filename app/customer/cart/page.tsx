@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { formatCurrency } from "@/lib/utils";
+import { translate } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageWrapper } from "@/components/layout/PageWrapper";
@@ -15,7 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
 export default function CartPage() {
-  const { cart, updateCartQuantity, removeFromCart, cartTotal, clearCart, addCustomerOrder, tableNumber, setTableNumber } = useAppStore();
+  const { cart, updateCartQuantity, removeFromCart, cartTotal, clearCart, addCustomerOrder, tableNumber, setTableNumber, language } = useAppStore();
+  const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
   const [customerName, setCustomerName] = useState("");
   const [tableInput, setTableInput] = useState(tableNumber?.toString() ?? "");
   const [isPlacing, setIsPlacing] = useState(false);
@@ -76,10 +78,10 @@ export default function CartPage() {
       <PageWrapper maxWidth="2xl">
         <div className="text-center py-20">
           <div className="text-8xl mb-4">🛒</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Giỏ hàng trống</h2>
-          <p className="text-gray-500 mb-6">Hãy thêm món ăn từ thực đơn nhé!</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{tr("cart_empty")}</h2>
+          <p className="text-gray-500 mb-6">{tr("cart_empty_desc")}</p>
           <Link href="/customer/menu">
-            <Button size="lg">Xem thực đơn</Button>
+            <Button size="lg">{tr("cart_view_menu")}</Button>
           </Link>
         </div>
       </PageWrapper>
@@ -95,8 +97,8 @@ export default function CartPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Giỏ hàng</h1>
-          <p className="text-sm text-gray-500">{cart.length} loại món</p>
+          <h1 className="text-2xl font-black text-gray-900">{tr("cart_title")}</h1>
+          <p className="text-sm text-gray-500">{cart.length} {tr("cart_types")}</p>
         </div>
       </div>
 
@@ -158,15 +160,15 @@ export default function CartPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-[#E4002B]" /> Thông tin bàn
+                <MapPin className="h-4 w-4 text-[#E4002B]" /> {tr("cart_table_info")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Số bàn *</label>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">{tr("cart_table_num")}</label>
                 <Input
                   type="number"
-                  placeholder="Nhập số bàn (vd: 5)"
+                  placeholder={tr("cart_table_ph")}
                   value={tableInput}
                   onChange={(e) => setTableInput(e.target.value)}
                   min="1"
@@ -174,16 +176,16 @@ export default function CartPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Tên khách hàng (tùy chọn)</label>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">{tr("cart_name_label")}</label>
                 <Input
-                  placeholder="Nhập tên của bạn"
+                  placeholder={tr("cart_name_ph")}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                 />
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-500 bg-blue-50 rounded-lg p-2.5">
                 <QrCode className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                <span>Hoặc quét mã QR tại bàn để nhận diện tự động</span>
+                <span>{tr("cart_qr")}</span>
               </div>
             </CardContent>
           </Card>
@@ -191,7 +193,7 @@ export default function CartPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4 text-[#E4002B]" /> Tổng đơn hàng
+                <ShoppingBag className="h-4 w-4 text-[#E4002B]" /> {tr("cart_summary")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -203,16 +205,16 @@ export default function CartPage() {
               ))}
               <Separator />
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">Tạm tính</span>
+                <span className="text-sm text-gray-500">{tr("cart_subtotal")}</span>
                 <span className="font-bold">{formatCurrency(total)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">Phí dịch vụ</span>
-                <Badge variant="secondary" className="text-xs">Miễn phí</Badge>
+                <span className="text-sm text-gray-500">{tr("cart_fee")}</span>
+                <Badge variant="secondary" className="text-xs">{tr("cart_free")}</Badge>
               </div>
               <Separator />
               <div className="flex justify-between items-center">
-                <span className="font-bold text-gray-900">Tổng cộng</span>
+                <span className="font-bold text-gray-900">{tr("cart_total")}</span>
                 <span className="font-black text-xl text-[#E4002B]">{formatCurrency(total)}</span>
               </div>
 
@@ -225,14 +227,14 @@ export default function CartPage() {
                 {isPlacing ? (
                   <span className="flex items-center gap-2">
                     <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                    Đang xử lý...
+                    {tr("cart_processing")}
                   </span>
                 ) : (
-                  `Đặt hàng · ${formatCurrency(total)}`
+                  `${tr("cart_place_order")} · ${formatCurrency(total)}`
                 )}
               </Button>
               <p className="text-xs text-gray-400 text-center">
-                Nhấn Đặt hàng để gửi đơn vào bếp
+                {tr("cart_note")}
               </p>
             </CardContent>
           </Card>

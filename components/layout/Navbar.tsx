@@ -27,6 +27,7 @@ const SUPERVISOR_NAV = [
 
 const MANAGER_NAV = [
   { href: "/manager/dashboard", label: "Dashboard", icon: BarChart3 },
+  { href: "/manager/menu", label: "Thực đơn", icon: UtensilsCrossed },
   { href: "/manager/quality", label: "Chất lượng", icon: ShieldCheck },
   { href: "/manager/employees", label: "Nhân viên", icon: Users },
   { href: "/manager/shifts", label: "Ca làm", icon: Clock },
