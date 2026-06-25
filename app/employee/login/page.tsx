@@ -59,12 +59,11 @@ function LoginForm() {
       <div className="bg-[#1A1A1A] text-white">
         <div className="max-w-md mx-auto px-6 py-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-[#E4002B] flex items-center justify-center font-black text-xl">
-              K
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/kfc-logo.png" alt="KFC" className="w-12 h-12 object-contain rounded-full bg-white p-1" />
             <div>
-              <div className="font-black text-2xl tracking-wide">KFC SYNC</div>
-              <div className="text-xs text-gray-400">Hệ thống nội bộ nhân viên</div>
+              <div className="font-black text-2xl tracking-wide text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">KFC SYNC</div>
+              <div className="text-xs text-gray-400">Branch Manager Portal</div>
             </div>
           </div>
         </div>

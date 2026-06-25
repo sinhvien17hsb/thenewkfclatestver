@@ -94,8 +94,8 @@ export function Navbar() {
         <Link href="/" className="flex-shrink-0 flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/kfc-logo.png" alt="KFC" className="w-10 h-10 object-contain rounded-full bg-white p-0.5" />
-          <div className="hidden sm:block">
-            <div className="font-black text-white text-lg leading-none tracking-wide">KFC SYNC</div>
+          <div>
+            <div className="font-black text-white text-lg leading-none tracking-wide drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">KFC SYNC</div>
             {user && (
               <div className="text-[10px] text-gray-400 leading-none mt-0.5">
                 {user.branchName.replace("KFC ", "")}
