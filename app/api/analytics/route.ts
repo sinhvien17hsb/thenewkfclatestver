@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getSessionUser } from "@/lib/auth-server";
 
 export async function GET() {
-  const user = await getSessionUser();
-  if (!user || user.role !== "MANAGER") return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -52,10 +49,14 @@ export async function GET() {
   const menuItemIds = topItems.map((t) => t.menuItemId);
   const menuItems = await prisma.menuItem.findMany({ where: { id: { in: menuItemIds } } });
 
-  const topProducts = topItems.map((t) => ({
-    name: menuItems.find((m) => m.id === t.menuItemId)?.name ?? "Unknown",
-    quantity: t._sum.quantity ?? 0,
-  }));
+  const topProducts = topItems.map((t) => {
+    const item = menuItems.find((m) => m.id === t.menuItemId);
+    return {
+      name: item?.name ?? "Unknown",
+      imageEmoji: item?.imageEmoji ?? "🍗",
+      total: t._sum.quantity ?? 0,
+    };
+  });
 
   // Group weekly orders by day
   const dayMap: Record<string, { orders: number; revenue: number }> = {};
@@ -88,7 +89,7 @@ export async function GET() {
       service: Number((feedbackStats._avg.serviceRating ?? 0).toFixed(1)),
       waiting: Number((feedbackStats._avg.waitingRating ?? 0).toFixed(1)),
     },
-    ordersByStatus,
+    ordersByStatus: Object.fromEntries(ordersByStatus.map((r) => [r.status, r._count._all])),
     recentOrders,
     weeklyData,
   });
