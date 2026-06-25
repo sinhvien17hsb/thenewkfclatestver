@@ -43,5 +43,5 @@ next-env.d.ts
 /lib/generated/prisma
 
 # local database
-dev.db
+# dev.db is committed so Vercel has seed data
 dev.db-journal
