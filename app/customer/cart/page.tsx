@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
 export default function CartPage() {
-  const { cart, updateCartQuantity, removeFromCart, cartTotal, placeOrder, tableNumber, setTableNumber } = useAppStore();
+  const { cart, updateCartQuantity, removeFromCart, cartTotal, clearCart, addCustomerOrder, tableNumber, setTableNumber } = useAppStore();
   const [customerName, setCustomerName] = useState("");
   const [tableInput, setTableInput] = useState(tableNumber?.toString() ?? "");
   const [isPlacing, setIsPlacing] = useState(false);
@@ -24,18 +24,50 @@ export default function CartPage() {
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
-    setIsPlacing(true);
     const tbl = tableInput ? parseInt(tableInput) : undefined;
-    if (tbl) setTableNumber(tbl);
-    await new Promise((r) => setTimeout(r, 800));
-    const order = placeOrder(tbl, customerName || "Khách hàng");
-    setIsPlacing(false);
-    if (order) {
+    if (!tbl) { toast.error("Vui lòng nhập số bàn."); return; }
+    setTableNumber(tbl);
+    setIsPlacing(true);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tableNumber: tbl,
+          customerName: customerName || "Khách hàng",
+          items: cart.map((c) => ({ menuItemId: c.menuItem.id, quantity: c.quantity, notes: c.notes })),
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "Đặt hàng thất bại.");
+      }
+      const order = await res.json();
+      addCustomerOrder({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        tableNumber: order.tableNumber,
+        customerName: order.customerName,
+        status: order.status,
+        totalAmount: order.totalAmount,
+        estimatedTime: order.estimatedTime,
+        createdAt: order.createdAt,
+        items: order.items.map((i: { quantity: number; price: number; menuItem: { name: string } }) => ({
+          name: i.menuItem.name,
+          quantity: i.quantity,
+          price: i.price,
+        })),
+      });
+      clearCart();
       toast.success("Đặt hàng thành công!", {
-        description: `Mã đơn: ${order.orderNumber} · Bàn ${tbl ?? "—"}`,
+        description: `Mã đơn: ${order.orderNumber} · Bàn ${tbl}`,
         duration: 4000,
       });
       router.push("/customer/orders");
+    } catch (e: unknown) {
+      toast.error((e as Error).message);
+    } finally {
+      setIsPlacing(false);
     }
   };
 
@@ -69,7 +101,6 @@ export default function CartPage() {
       </div>
 
       <div className="grid md:grid-cols-5 gap-6">
-        {/* Cart items */}
         <div className="md:col-span-3 space-y-3">
           <AnimatePresence>
             {cart.map(({ menuItem, quantity }) => (
@@ -123,9 +154,7 @@ export default function CartPage() {
           </AnimatePresence>
         </div>
 
-        {/* Order summary */}
         <div className="md:col-span-2 space-y-4">
-          {/* Table info */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -134,7 +163,7 @@ export default function CartPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Số bàn</label>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Số bàn *</label>
                 <Input
                   type="number"
                   placeholder="Nhập số bàn (vd: 5)"
@@ -159,7 +188,6 @@ export default function CartPage() {
             </CardContent>
           </Card>
 
-          {/* Summary */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -186,12 +214,6 @@ export default function CartPage() {
               <div className="flex justify-between items-center">
                 <span className="font-bold text-gray-900">Tổng cộng</span>
                 <span className="font-black text-xl text-[#E4002B]">{formatCurrency(total)}</span>
-              </div>
-
-              {/* Estimated time */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-                <div className="text-2xl font-black text-amber-700">~12 phút</div>
-                <div className="text-xs text-amber-600">Thời gian chờ ước tính</div>
               </div>
 
               <Button

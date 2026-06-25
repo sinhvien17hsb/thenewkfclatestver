@@ -17,9 +17,9 @@ interface Order {
 }
 
 const COLUMNS: { status: string; label: string; next: string | null; nextLabel: string | null; color: string; bg: string; icon: React.ElementType }[] = [
-  { status: "RECEIVED", label: "Đơn mới", next: "PREPARING", nextLabel: "Bắt đầu làm", color: "text-blue-400", bg: "bg-blue-950/40 border-blue-900", icon: Clock },
-  { status: "PREPARING", label: "Đang làm", next: "READY", nextLabel: "Hoàn thành", color: "text-orange-400", bg: "bg-orange-950/40 border-orange-900", icon: ChefHat },
-  { status: "READY", label: "Sẵn sàng", next: "DELIVERED", nextLabel: "Đã phục vụ", color: "text-green-400", bg: "bg-green-950/40 border-green-900", icon: Package },
+  { status: "queued",    label: "Đơn mới",     next: "preparing",  nextLabel: "Bắt đầu làm", color: "text-blue-400",   bg: "bg-blue-950/40 border-blue-900",   icon: Clock },
+  { status: "preparing", label: "Đang làm",    next: "ready",      nextLabel: "Hoàn thành",  color: "text-orange-400", bg: "bg-orange-950/40 border-orange-900", icon: ChefHat },
+  { status: "ready",     label: "Sẵn sàng",    next: "completed",  nextLabel: "Đã phục vụ", color: "text-green-400",  bg: "bg-green-950/40 border-green-900", icon: Package },
 ];
 
 function elapsed(createdAt: string): string {

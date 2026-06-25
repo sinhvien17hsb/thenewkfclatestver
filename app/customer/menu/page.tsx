@@ -1,13 +1,13 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingCart, Plus, Minus, Flame, Filter } from "lucide-react";
+import { Search, ShoppingCart, Plus, Minus, Flame, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { menuItems, getMenuByCategory, searchMenuItems } from "@/lib/data/menu";
+import { usePolling } from "@/lib/hooks";
 import { useAppStore } from "@/lib/store";
 import { MENU_CATEGORIES } from "@/lib/types";
-import type { MenuCategory, MenuItem } from "@/lib/types";
+import type { MenuCategory } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,36 +15,60 @@ import { Badge } from "@/components/ui/badge";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Card, CardContent } from "@/components/ui/card";
 
+interface DbMenuItem {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  price: number;
+  imageEmoji: string;
+  available: boolean;
+  popular: boolean;
+  prepTime: number;
+}
+
 export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState<MenuCategory | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const { addToCart, cart, cartItemCount } = useAppStore();
   const count = cartItemCount();
 
-  const getItems = () => {
-    if (searchQuery.trim()) return searchMenuItems(searchQuery);
-    if (activeCategory === "all") return menuItems.filter((i) => i.available);
-    return getMenuByCategory(activeCategory);
+  const { data: allItems, loading } = usePolling<DbMenuItem[]>("/api/menu?available=true", 30000);
+
+  const getItems = (): DbMenuItem[] => {
+    if (!allItems) return [];
+    const q = searchQuery.trim().toLowerCase();
+    if (q) return allItems.filter((i) => i.name.toLowerCase().includes(q));
+    if (activeCategory === "all") return allItems;
+    return allItems.filter((i) => i.category === activeCategory);
   };
 
   const items = getItems();
+  const popularItems = (allItems ?? []).filter((i) => i.popular).slice(0, 4);
 
-  const getCartQty = (itemId: string) => {
-    const ci = cart.find((c) => c.menuItem.id === itemId);
-    return ci?.quantity ?? 0;
+  const getCartQty = (itemId: string) =>
+    cart.find((c) => c.menuItem.id === itemId)?.quantity ?? 0;
+
+  const handleAdd = (item: DbMenuItem) => {
+    addToCart(
+      { id: item.id, name: item.name, nameEn: "", description: item.description ?? "", price: item.price, category: item.category as MenuCategory, image: item.imageEmoji, popular: item.popular, prepTime: item.prepTime, available: item.available },
+      1
+    );
+    toast.success(`Đã thêm ${item.name}`, { description: "Vào giỏ hàng", duration: 2000 });
   };
 
-  const handleAdd = (item: MenuItem) => {
-    addToCart(item, 1);
-    toast.success(`Đã thêm ${item.name}`, {
-      description: "Vào giỏ hàng",
-      duration: 2000,
-    });
-  };
+  if (loading && !allItems) {
+    return (
+      <PageWrapper>
+        <div className="flex items-center justify-center py-32">
+          <Loader2 className="h-8 w-8 animate-spin text-[#E4002B]" />
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-black text-gray-900">Thực đơn KFC</h1>
@@ -60,7 +84,6 @@ export default function MenuPage() {
         )}
       </div>
 
-      {/* Search */}
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
@@ -71,7 +94,6 @@ export default function MenuPage() {
         />
       </div>
 
-      {/* Categories */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
         <button
           onClick={() => { setActiveCategory("all"); setSearchQuery(""); }}
@@ -83,7 +105,7 @@ export default function MenuPage() {
         >
           🍽️ Tất cả
         </button>
-        {(Object.entries(MENU_CATEGORIES) as [MenuCategory, typeof MENU_CATEGORIES[MenuCategory]][]).map(([key, cat]) => (
+        {(Object.entries(MENU_CATEGORIES) as [MenuCategory, (typeof MENU_CATEGORIES)[MenuCategory]][]).map(([key, cat]) => (
           <button
             key={key}
             onClick={() => { setActiveCategory(key); setSearchQuery(""); }}
@@ -98,29 +120,24 @@ export default function MenuPage() {
         ))}
       </div>
 
-      {/* Popular section */}
-      {activeCategory === "all" && !searchQuery && (
+      {activeCategory === "all" && !searchQuery && popularItems.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Flame className="h-5 w-5 text-[#E4002B]" />
             <h2 className="font-bold text-gray-900">Phổ biến nhất</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {menuItems.filter((i) => i.popular && i.available).slice(0, 4).map((item) => (
+            {popularItems.map((item) => (
               <PopularCard key={item.id} item={item} qty={getCartQty(item.id)} onAdd={() => handleAdd(item)} />
             ))}
           </div>
         </div>
       )}
 
-      {/* Items grid */}
       <div>
         {searchQuery && (
-          <div className="mb-4 flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-400" />
-            <span className="text-sm text-gray-500">
-              Tìm thấy <strong>{items.length}</strong> kết quả cho &quot;{searchQuery}&quot;
-            </span>
+          <div className="mb-4 text-sm text-gray-500">
+            Tìm thấy <strong>{items.length}</strong> kết quả cho &quot;{searchQuery}&quot;
           </div>
         )}
         {!searchQuery && activeCategory !== "all" && (
@@ -149,7 +166,6 @@ export default function MenuPage() {
         )}
       </div>
 
-      {/* Sticky cart button for mobile */}
       {count > 0 && (
         <motion.div
           initial={{ y: 100 }}
@@ -168,14 +184,14 @@ export default function MenuPage() {
   );
 }
 
-function PopularCard({ item, qty, onAdd }: { item: MenuItem; qty: number; onAdd: () => void }) {
+function PopularCard({ item, qty, onAdd }: { item: DbMenuItem; qty: number; onAdd: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       className="bg-white rounded-xl border border-gray-200 p-3 hover:shadow-md transition-all"
     >
-      <div className="text-4xl text-center mb-2">{item.image}</div>
+      <div className="text-4xl text-center mb-2">{item.imageEmoji}</div>
       <div className="text-sm font-semibold text-gray-900 text-center mb-1 line-clamp-1">{item.name}</div>
       <div className="text-center text-[#E4002B] font-bold text-sm mb-2">{formatCurrency(item.price)}</div>
       <Button size="sm" onClick={onAdd} className="w-full text-xs">
@@ -185,7 +201,7 @@ function PopularCard({ item, qty, onAdd }: { item: MenuItem; qty: number; onAdd:
   );
 }
 
-function MenuItemCard({ item, qty, onAdd }: { item: MenuItem; qty: number; onAdd: () => void }) {
+function MenuItemCard({ item, qty, onAdd }: { item: DbMenuItem; qty: number; onAdd: () => void }) {
   const { updateCartQuantity, removeFromCart } = useAppStore();
 
   return (
@@ -198,20 +214,18 @@ function MenuItemCard({ item, qty, onAdd }: { item: MenuItem; qty: number; onAdd
       <Card className="h-full hover:shadow-md transition-all">
         <CardContent className="p-4">
           <div className="flex items-start gap-4">
-            <div className="text-5xl flex-shrink-0">{item.image}</div>
+            <div className="text-5xl flex-shrink-0">{item.imageEmoji}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-bold text-gray-900 text-sm leading-tight">{item.name}</h3>
-                <div className="flex flex-col gap-1 flex-shrink-0">
-                  {item.popular && <Badge variant="default" className="text-xs px-1.5 py-0.5">🔥 Hot</Badge>}
-                  {item.spicy && <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-xs px-1.5 py-0.5">🌶️ Cay</Badge>}
-                </div>
+                {item.popular && (
+                  <Badge variant="default" className="text-xs px-1.5 py-0.5 flex-shrink-0">🔥 Hot</Badge>
+                )}
               </div>
-              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-gray-400">⏱ {item.prepTime}p</span>
-                {item.calories && <span className="text-xs text-gray-400">· {item.calories} kcal</span>}
-              </div>
+              {item.description && (
+                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</p>
+              )}
+              <div className="text-xs text-gray-400 mt-1">⏱ {item.prepTime} phút</div>
               <div className="flex items-center justify-between mt-3">
                 <span className="font-black text-[#E4002B]">{formatCurrency(item.price)}</span>
                 {qty === 0 ? (

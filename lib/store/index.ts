@@ -1,31 +1,28 @@
 "use client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type {
-  UserRole,
-  CartItem,
-  MenuItem,
-  Order,
-  OrderStatus,
-  Alert,
-  AuthUser,
-  AuthRole,
-} from "@/lib/types";
+import type { UserRole, CartItem, MenuItem, Alert, AuthUser, AuthRole } from "@/lib/types";
 import { ROLE_PERMISSIONS, AUTH_ROLE_AVATARS } from "@/lib/types";
-import { initialOrders } from "@/lib/data/orders";
 import { alerts as initialAlerts } from "@/lib/data/alerts";
-import {
-  generateOrderId,
-  calculatePriorityScore,
-  getPriorityFromScore,
-} from "@/lib/utils";
+
+// ===== CUSTOMER ORDER =====
+export interface CustomerOrder {
+  id: string;
+  orderNumber: string;
+  tableNumber?: string;
+  customerName?: string | null;
+  status: string;
+  totalAmount: number;
+  estimatedTime: number;
+  createdAt: string;
+  items: { name: string; quantity: number; price: number }[];
+}
 
 // ===== APP STORE =====
 interface AppStore {
   role: UserRole;
   setRole: (role: UserRole) => void;
 
-  // Cart
   cart: CartItem[];
   addToCart: (item: MenuItem, quantity?: number, notes?: string) => void;
   removeFromCart: (itemId: string) => void;
@@ -34,17 +31,13 @@ interface AppStore {
   cartTotal: () => number;
   cartItemCount: () => number;
 
-  // Orders (customer view)
-  customerOrders: Order[];
-  placeOrder: (tableNumber?: number, customerName?: string) => Order | null;
-  currentTrackingOrderId: string | null;
-  setCurrentTrackingOrder: (orderId: string | null) => void;
+  customerOrders: CustomerOrder[];
+  addCustomerOrder: (order: CustomerOrder) => void;
+  updateCustomerOrderStatus: (orderId: string, status: string) => void;
 
-  // Table
   tableNumber: number | null;
   setTableNumber: (num: number | null) => void;
 
-  // Notifications
   notificationCount: number;
   clearNotifications: () => void;
 }
@@ -55,97 +48,34 @@ export const useAppStore = create<AppStore>()(
       role: "customer",
       setRole: (role) => set({ role }),
 
-      // Cart
       cart: [],
       addToCart: (item, quantity = 1, notes) => {
         const cart = get().cart;
         const existing = cart.find((c) => c.menuItem.id === item.id);
         if (existing) {
-          set({
-            cart: cart.map((c) =>
-              c.menuItem.id === item.id
-                ? { ...c, quantity: c.quantity + quantity }
-                : c
-            ),
-          });
+          set({ cart: cart.map((c) => c.menuItem.id === item.id ? { ...c, quantity: c.quantity + quantity } : c) });
         } else {
           set({ cart: [...cart, { menuItem: item, quantity, notes }] });
         }
       },
-      removeFromCart: (itemId) =>
-        set({ cart: get().cart.filter((c) => c.menuItem.id !== itemId) }),
+      removeFromCart: (itemId) => set({ cart: get().cart.filter((c) => c.menuItem.id !== itemId) }),
       updateCartQuantity: (itemId, quantity) => {
-        if (quantity <= 0) {
-          get().removeFromCart(itemId);
-          return;
-        }
-        set({
-          cart: get().cart.map((c) =>
-            c.menuItem.id === itemId ? { ...c, quantity } : c
-          ),
-        });
+        if (quantity <= 0) { get().removeFromCart(itemId); return; }
+        set({ cart: get().cart.map((c) => c.menuItem.id === itemId ? { ...c, quantity } : c) });
       },
       clearCart: () => set({ cart: [] }),
-      cartTotal: () =>
-        get().cart.reduce(
-          (sum, item) => sum + item.menuItem.price * item.quantity,
-          0
-        ),
-      cartItemCount: () =>
-        get().cart.reduce((sum, item) => sum + item.quantity, 0),
+      cartTotal: () => get().cart.reduce((sum, item) => sum + item.menuItem.price * item.quantity, 0),
+      cartItemCount: () => get().cart.reduce((sum, item) => sum + item.quantity, 0),
 
-      // Orders
       customerOrders: [],
-      placeOrder: (tableNumber, customerName = "Khách hàng") => {
-        const cart = get().cart;
-        if (cart.length === 0) return null;
+      addCustomerOrder: (order) => set({ customerOrders: [order, ...get().customerOrders] }),
+      updateCustomerOrderStatus: (orderId, status) =>
+        set({ customerOrders: get().customerOrders.map((o) => o.id === orderId ? { ...o, status } : o) }),
 
-        const waitScore = calculatePriorityScore(0, cart.length, "dine_in", 50);
-        const priority = getPriorityFromScore(waitScore);
-        const totalAmount = get().cartTotal();
-
-        const newOrder: Order = {
-          id: `o${Date.now()}`,
-          orderNumber: generateOrderId(),
-          tableNumber: tableNumber ?? get().tableNumber ?? undefined,
-          customerName,
-          customerType: "dine_in",
-          items: cart.map((c) => ({
-            menuItemId: c.menuItem.id,
-            name: c.menuItem.name,
-            quantity: c.quantity,
-            price: c.menuItem.price,
-            notes: c.notes,
-          })),
-          status: "queued",
-          priority,
-          priorityScore: waitScore,
-          totalAmount,
-          estimatedTime: Math.ceil(cart.reduce((s, c) => s + c.menuItem.prepTime * c.quantity, 0) / 2),
-          elapsedTime: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          branchId: "b001",
-          complexityScore: Math.min(cart.length * 2, 10),
-        };
-
-        set({
-          customerOrders: [newOrder, ...get().customerOrders],
-          currentTrackingOrderId: newOrder.id,
-        });
-        get().clearCart();
-        return newOrder;
-      },
-      currentTrackingOrderId: null,
-      setCurrentTrackingOrder: (orderId) =>
-        set({ currentTrackingOrderId: orderId }),
-
-      // Table
       tableNumber: null,
       setTableNumber: (num) => set({ tableNumber: num }),
 
-      // Notifications
-      notificationCount: 3,
+      notificationCount: 0,
       clearNotifications: () => set({ notificationCount: 0 }),
     }),
     {
@@ -153,39 +83,11 @@ export const useAppStore = create<AppStore>()(
       partialize: (state) => ({
         role: state.role,
         tableNumber: state.tableNumber,
+        customerOrders: state.customerOrders,
       }),
     }
   )
 );
-
-// ===== KITCHEN STORE =====
-interface KitchenStore {
-  orders: Order[];
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
-  addOrder: (order: Order) => void;
-  activeFilter: OrderStatus | "all";
-  setActiveFilter: (filter: OrderStatus | "all") => void;
-  kitchenLoad: number;
-  isHighTraffic: boolean;
-}
-
-export const useKitchenStore = create<KitchenStore>((set, get) => ({
-  orders: initialOrders,
-  updateOrderStatus: (orderId, status) => {
-    set({
-      orders: get().orders.map((o) =>
-        o.id === orderId
-          ? { ...o, status, updatedAt: new Date().toISOString() }
-          : o
-      ),
-    });
-  },
-  addOrder: (order) => set({ orders: [order, ...get().orders] }),
-  activeFilter: "all",
-  setActiveFilter: (filter) => set({ activeFilter: filter }),
-  kitchenLoad: 72,
-  isHighTraffic: true,
-}));
 
 // ===== MANAGER STORE =====
 interface ManagerStore {
@@ -202,13 +104,7 @@ interface ManagerStore {
 export const useManagerStore = create<ManagerStore>((set, get) => ({
   alerts: initialAlerts,
   resolveAlert: (alertId) => {
-    set({
-      alerts: get().alerts.map((a) =>
-        a.id === alertId
-          ? { ...a, resolved: true, resolvedAt: new Date().toISOString() }
-          : a
-      ),
-    });
+    set({ alerts: get().alerts.map((a) => a.id === alertId ? { ...a, resolved: true, resolvedAt: new Date().toISOString() } : a) });
   },
   activeTab: "overview",
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -260,9 +156,7 @@ const MOCK_ACCOUNTS: AuthUser[] = [
 
 function checkAccess(role: AuthRole, path: string): boolean {
   const allowed = ROLE_PERMISSIONS[role] ?? [];
-  return allowed.some(
-    (prefix) => path === prefix || path.startsWith(prefix + "/")
-  );
+  return allowed.some((prefix) => path === prefix || path.startsWith(prefix + "/"));
 }
 
 interface AuthStore {
@@ -283,9 +177,7 @@ export const useAuthStore = create<AuthStore>()(
       users: MOCK_ACCOUNTS,
       login: (idOrEmail, password) => {
         const found = get().users.find(
-          (u) =>
-            (u.employeeId === idOrEmail || u.email === idOrEmail) &&
-            u.password === password
+          (u) => (u.employeeId === idOrEmail || u.email === idOrEmail) && u.password === password
         );
         if (!found) return { success: false, error: "Mã nhân viên/email hoặc mật khẩu không đúng." };
         set({ user: found });
@@ -293,15 +185,9 @@ export const useAuthStore = create<AuthStore>()(
       },
       logout: () => set({ user: null }),
       register: (data) => {
-        const exists = get().users.find(
-          (u) => u.employeeId === data.employeeId || u.email === data.email
-        );
+        const exists = get().users.find((u) => u.employeeId === data.employeeId || u.email === data.email);
         if (exists) return { success: false, error: "Mã nhân viên hoặc email đã tồn tại." };
-        const newUser: AuthUser = {
-          ...data,
-          id: `user_${Date.now()}`,
-          registeredAt: new Date().toISOString(),
-        };
+        const newUser: AuthUser = { ...data, id: `user_${Date.now()}`, registeredAt: new Date().toISOString() };
         set({ users: [...get().users, newUser], user: newUser });
         return { success: true };
       },

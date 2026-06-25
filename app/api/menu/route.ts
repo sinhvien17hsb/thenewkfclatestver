@@ -6,10 +6,11 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category");
   const search = searchParams.get("search");
+  const availableOnly = searchParams.get("available") === "true";
 
   const items = await prisma.menuItem.findMany({
     where: {
-      available: true,
+      ...(availableOnly ? { available: true } : {}),
       ...(category ? { category } : {}),
       ...(search ? { name: { contains: search } } : {}),
     },
@@ -24,13 +25,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
   }
 
-  const { name, description, category, price, imageEmoji, available } = await req.json();
+  const { name, description, category, price, imageEmoji, available, popular, prepTime } = await req.json();
   if (!name || !category || !price) {
     return NextResponse.json({ error: "Thiếu thông tin bắt buộc." }, { status: 400 });
   }
 
   const item = await prisma.menuItem.create({
-    data: { name, description, category, price: Number(price), imageEmoji: imageEmoji ?? "🍽️", available: available ?? true },
+    data: {
+      name,
+      description,
+      category,
+      price: Number(price),
+      imageEmoji: imageEmoji ?? "🍽️",
+      available: available ?? true,
+      popular: popular ?? false,
+      prepTime: prepTime ? Number(prepTime) : 10,
+    },
   });
   return NextResponse.json(item, { status: 201 });
 }

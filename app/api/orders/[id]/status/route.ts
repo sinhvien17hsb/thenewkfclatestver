@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 
-const VALID_STATUSES = ["RECEIVED", "PREPARING", "READY", "DELIVERED"];
+const VALID_STATUSES = ["queued", "preparing", "quality_check", "ready", "completed", "cancelled"];
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();

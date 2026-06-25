@@ -30,6 +30,7 @@ export async function POST(req: Request) {
         orderNumber: generateOrderNumber(),
         tableNumber: String(tableNumber),
         customerName: customerName ?? null,
+        status: "queued",
         totalAmount: total,
         estimatedTime: Math.max(10, items.length * 4),
         items: {
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
           }),
         },
         statusHistory: {
-          create: [{ status: "RECEIVED" }],
+          create: [{ status: "queued" }],
         },
       },
       include: { items: { include: { menuItem: true } } },

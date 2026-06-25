@@ -25,10 +25,12 @@ model MenuItem {
   id          String   @id @default(cuid())
   name        String
   description String?
-  category    String   // FRIED_CHICKEN | BURGER | RICE | DRINKS | COMBO | DESSERT
+  category    String
   price       Float
   imageEmoji  String   @default("🍽️")
   available   Boolean  @default(true)
+  popular     Boolean  @default(false)
+  prepTime    Int      @default(10)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -40,7 +42,7 @@ model Order {
   orderNumber   String   @unique
   tableNumber   String
   customerName  String?
-  status        String   @default("RECEIVED")
+  status        String   @default("queued")
   totalAmount   Float
   estimatedTime Int      @default(15)
   createdAt     DateTime @default(now())
