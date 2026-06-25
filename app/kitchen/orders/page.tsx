@@ -86,11 +86,12 @@ export default function KitchenOrdersPage() {
     const next = NEXT_STATUS[order.status];
     if (!next) return;
     try {
-      await fetch(`/api/orders/${order.id}/status`, {
+      const res = await fetch(`/api/orders/${order.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: next }),
       });
+      if (!res.ok) throw new Error("Failed");
       refetch();
       toast.success(`${order.orderNumber} — ${STATUS_ACTIONS[order.status]}`, { duration: 2000 });
     } catch {

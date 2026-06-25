@@ -6,7 +6,6 @@ const VALID_STATUSES = ["queued", "preparing", "quality_check", "ready", "comple
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 });
 
   const { id } = await params;
   const { status } = await req.json();
@@ -20,7 +19,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data: {
       status,
       statusHistory: {
-        create: [{ status, changedById: user.id }],
+        create: [{ status, ...(user ? { changedById: user.id } : {}) }],
       },
     },
     include: { items: { include: { menuItem: true } } },
