@@ -57,14 +57,14 @@ export default function AIAssistantPage() {
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ message: content }),
       });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error ?? "Lỗi không xác định");
       }
       const data = await res.json();
-      setMessages([...newMessages, { role: "assistant", content: data.response }]);
+      setMessages([...newMessages, { role: "assistant", content: data.reply }]);
     } catch (e: unknown) {
       setMessages([...newMessages, { role: "assistant", content: `Xin lỗi, đã có lỗi xảy ra: ${(e as Error).message}. Vui lòng thử lại.` }]);
     } finally {
@@ -82,8 +82,8 @@ export default function AIAssistantPage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <div className="font-black text-base leading-none">Trợ lý AI</div>
-              <div className="text-xs text-gray-400 mt-0.5 leading-none">Powered by Gemini</div>
+              <div className="font-black text-base leading-none">Trợ lý KFC</div>
+              <div className="text-xs text-gray-400 mt-0.5 leading-none">Hỏi về thực đơn, combo, giao hàng...</div>
             </div>
           </div>
           <button
