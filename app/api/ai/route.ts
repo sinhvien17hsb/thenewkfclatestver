@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { MenuItem } from "@prisma/client";
 import prisma from "@/lib/db";
 
 export async function POST(req: Request) {
@@ -13,7 +12,7 @@ export async function POST(req: Request) {
   const menuItems = await prisma.menuItem.findMany({ where: { available: true } });
 
   const menuContext = menuItems
-    .map((m: MenuItem) => `${m.imageEmoji} ${m.name} - ${m.price.toLocaleString("vi-VN")}đ (${m.category})${m.description ? `: ${m.description}` : ""}`)
+    .map((m: { imageEmoji: string; name: string; price: number; category: string; description: string | null }) => `${m.imageEmoji} ${m.name} - ${m.price.toLocaleString("vi-VN")}đ (${m.category})${m.description ? `: ${m.description}` : ""}`)
     .join("\n");
 
   const systemPrompt = `Bạn là trợ lý AI của nhà hàng KFC Sync. Trả lời bằng tiếng Việt, ngắn gọn, thân thiện và chuyên nghiệp.
