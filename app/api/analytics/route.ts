@@ -50,8 +50,9 @@ export async function GET() {
   const menuItemIds = (topItems as TopItem[]).map((t) => t.menuItemId);
   const menuItems = await prisma.menuItem.findMany({ where: { id: { in: menuItemIds } } });
 
+  type MenuItemRow = { id: string; name: string; imageEmoji: string };
   const topProducts = (topItems as TopItem[]).map((t) => {
-    const item = menuItems.find((m) => m.id === t.menuItemId);
+    const item = (menuItems as MenuItemRow[]).find((m) => m.id === t.menuItemId);
     return {
       name: item?.name ?? "Unknown",
       imageEmoji: item?.imageEmoji ?? "🍗",
