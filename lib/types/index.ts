@@ -35,12 +35,14 @@ export type MenuCategory =
   | "com"
   | "do_uong"
   | "combo"
+  | "mon_phu"
   | "trang_miem";
 
 export const MENU_CATEGORIES: Record<MenuCategory, { label: string; emoji: string; color: string }> = {
   ga_ran: { label: "Gà Rán", emoji: "🍗", color: "#E4002B" },
   burger: { label: "Burger", emoji: "🍔", color: "#F97316" },
   com: { label: "Cơm", emoji: "🍚", color: "#EAB308" },
+  mon_phu: { label: "Món Phụ", emoji: "🍟", color: "#10B981" },
   do_uong: { label: "Đồ Uống", emoji: "🥤", color: "#3B82F6" },
   combo: { label: "Combo", emoji: "🎁", color: "#8B5CF6" },
   trang_miem: { label: "Tráng Miệng", emoji: "🍦", color: "#EC4899" },

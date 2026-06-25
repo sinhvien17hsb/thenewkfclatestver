@@ -28,6 +28,7 @@ model MenuItem {
   category    String
   price       Float
   imageEmoji  String   @default("🍽️")
+  imageUrl    String   @default("")
   available   Boolean  @default(true)
   popular     Boolean  @default(false)
   prepTime    Int      @default(10)

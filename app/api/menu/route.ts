@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
   }
 
-  const { name, description, category, price, imageEmoji, available, popular, prepTime } = await req.json();
+  const { name, description, category, price, imageEmoji, imageUrl, available, popular, prepTime } = await req.json();
   if (!name || !category || !price) {
     return NextResponse.json({ error: "Thiếu thông tin bắt buộc." }, { status: 400 });
   }
@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       category,
       price: Number(price),
       imageEmoji: imageEmoji ?? "🍽️",
+      imageUrl: imageUrl ?? "",
       available: available ?? true,
       popular: popular ?? false,
       prepTime: prepTime ? Number(prepTime) : 10,

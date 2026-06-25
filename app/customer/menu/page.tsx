@@ -22,6 +22,7 @@ interface DbMenuItem {
   category: string;
   price: number;
   imageEmoji: string;
+  imageUrl: string;
   available: boolean;
   popular: boolean;
   prepTime: number;
@@ -184,19 +185,31 @@ export default function MenuPage() {
   );
 }
 
+function ItemImage({ item, className }: { item: DbMenuItem; className: string }) {
+  if (item.imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={item.imageUrl} alt={item.name} className={`object-cover ${className}`} loading="lazy" />
+    );
+  }
+  return <div className={`flex items-center justify-center text-4xl bg-orange-50 ${className}`}>{item.imageEmoji}</div>;
+}
+
 function PopularCard({ item, qty, onAdd }: { item: DbMenuItem; qty: number; onAdd: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-white rounded-xl border border-gray-200 p-3 hover:shadow-md transition-all"
+      className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all"
     >
-      <div className="text-4xl text-center mb-2">{item.imageEmoji}</div>
-      <div className="text-sm font-semibold text-gray-900 text-center mb-1 line-clamp-1">{item.name}</div>
-      <div className="text-center text-[#E4002B] font-bold text-sm mb-2">{formatCurrency(item.price)}</div>
-      <Button size="sm" onClick={onAdd} className="w-full text-xs">
-        <Plus className="h-3 w-3" /> Thêm
-      </Button>
+      <ItemImage item={item} className="w-full h-28 rounded-t-xl" />
+      <div className="p-3">
+        <div className="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">{item.name}</div>
+        <div className="text-[#E4002B] font-bold text-sm mb-2">{formatCurrency(item.price)}</div>
+        <Button size="sm" onClick={onAdd} className="w-full text-xs">
+          <Plus className="h-3 w-3" /> Thêm
+        </Button>
+      </div>
     </motion.div>
   );
 }
@@ -211,46 +224,42 @@ function MenuItemCard({ item, qty, onAdd }: { item: DbMenuItem; qty: number; onA
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
     >
-      <Card className="h-full hover:shadow-md transition-all">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-4">
-            <div className="text-5xl flex-shrink-0">{item.imageEmoji}</div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-bold text-gray-900 text-sm leading-tight">{item.name}</h3>
-                {item.popular && (
-                  <Badge variant="default" className="text-xs px-1.5 py-0.5 flex-shrink-0">🔥 Hot</Badge>
-                )}
+      <Card className="h-full hover:shadow-md transition-all overflow-hidden">
+        <ItemImage item={item} className="w-full h-36" />
+        <CardContent className="p-3">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="font-bold text-gray-900 text-sm leading-tight">{item.name}</h3>
+            {item.popular && (
+              <Badge variant="default" className="text-xs px-1.5 py-0.5 flex-shrink-0">🔥 Hot</Badge>
+            )}
+          </div>
+          {item.description && (
+            <p className="text-xs text-gray-500 mb-1 line-clamp-2">{item.description}</p>
+          )}
+          <div className="text-xs text-gray-400 mb-2">⏱ {item.prepTime} phút</div>
+          <div className="flex items-center justify-between">
+            <span className="font-black text-[#E4002B]">{formatCurrency(item.price)}</span>
+            {qty === 0 ? (
+              <Button size="sm" onClick={onAdd} className="h-8 px-3 text-xs">
+                <Plus className="h-3 w-3 mr-1" /> Thêm
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => qty === 1 ? removeFromCart(item.id) : updateCartQuantity(item.id, qty - 1)}
+                  className="w-7 h-7 rounded-full border-2 border-[#E4002B] text-[#E4002B] flex items-center justify-center hover:bg-red-50 transition-colors"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span className="w-5 text-center font-bold text-sm">{qty}</span>
+                <button
+                  onClick={onAdd}
+                  className="w-7 h-7 rounded-full bg-[#E4002B] text-white flex items-center justify-center hover:bg-[#BB0020] transition-colors"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
               </div>
-              {item.description && (
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</p>
-              )}
-              <div className="text-xs text-gray-400 mt-1">⏱ {item.prepTime} phút</div>
-              <div className="flex items-center justify-between mt-3">
-                <span className="font-black text-[#E4002B]">{formatCurrency(item.price)}</span>
-                {qty === 0 ? (
-                  <Button size="sm" onClick={onAdd} className="h-8 px-3 text-xs">
-                    <Plus className="h-3 w-3 mr-1" /> Thêm
-                  </Button>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => qty === 1 ? removeFromCart(item.id) : updateCartQuantity(item.id, qty - 1)}
-                      className="w-7 h-7 rounded-full border-2 border-[#E4002B] text-[#E4002B] flex items-center justify-center hover:bg-red-50 transition-colors"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <span className="w-5 text-center font-bold text-sm">{qty}</span>
-                    <button
-                      onClick={onAdd}
-                      className="w-7 h-7 rounded-full bg-[#E4002B] text-white flex items-center justify-center hover:bg-[#BB0020] transition-colors"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>

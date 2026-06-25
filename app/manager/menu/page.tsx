@@ -8,9 +8,17 @@ import { formatCurrency } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-interface MenuItem { id: string; name: string; description: string; category: string; price: number; imageEmoji: string; available: boolean; }
+interface MenuItem { id: string; name: string; description: string; category: string; price: number; imageEmoji: string; imageUrl: string; available: boolean; }
 
-const CATEGORIES = ["Gà rán", "Burger", "Combo", "Sides", "Drinks", "Desserts"];
+const CATEGORIES = [
+  { value: "combo",      label: "🎁 Combo" },
+  { value: "ga_ran",     label: "🍗 Gà Rán" },
+  { value: "burger",     label: "🍔 Burger" },
+  { value: "mon_phu",    label: "🍟 Món Phụ" },
+  { value: "trang_miem", label: "🍦 Tráng Miệng" },
+  { value: "do_uong",    label: "🥤 Đồ Uống" },
+  { value: "com",        label: "🍚 Cơm" },
+];
 const EMOJIS = ["🍗","🍔","🌮","🍟","🥤","🍦","🥗","🍱","🌯","🍞","🥩","🎉"];
 
 function MenuForm({ item, onSave, onClose }: {
@@ -18,7 +26,7 @@ function MenuForm({ item, onSave, onClose }: {
 }) {
   const [form, setForm] = useState({
     name: item?.name ?? "", description: item?.description ?? "", category: item?.category ?? "",
-    price: item?.price ?? 0, imageEmoji: item?.imageEmoji ?? "🍗", available: item?.available ?? true,
+    price: item?.price ?? 0, imageEmoji: item?.imageEmoji ?? "🍗", imageUrl: item?.imageUrl ?? "", available: item?.available ?? true,
   });
   const [loading, setLoading] = useState(false);
 
@@ -73,6 +81,7 @@ function MenuForm({ item, onSave, onClose }: {
           {[
             { k: "name", label: "Tên món", placeholder: "Gà rán giòn" },
             { k: "description", label: "Mô tả", placeholder: "Miêu tả ngắn..." },
+            { k: "imageUrl", label: "URL hình ảnh", placeholder: "https://..." },
           ].map(({ k, label, placeholder }) => (
             <div key={k}>
               <label className="text-xs font-semibold text-gray-400 uppercase block mb-1">{label}</label>
@@ -81,6 +90,10 @@ function MenuForm({ item, onSave, onClose }: {
                 className="bg-gray-800 border-gray-700 text-white rounded-xl" />
             </div>
           ))}
+          {form.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.imageUrl} alt="preview" className="w-full h-32 object-cover rounded-xl" />
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -89,7 +102,7 @@ function MenuForm({ item, onSave, onClose }: {
                 className="w-full h-9 rounded-xl border border-gray-700 px-3 text-sm bg-gray-800 text-white focus:outline-none"
               >
                 <option value="">-- Chọn --</option>
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
             <div>
@@ -187,7 +200,7 @@ export default function MenuPage() {
           className="h-9 rounded-xl border border-gray-800 px-3 text-sm bg-gray-900 text-white focus:outline-none"
         >
           <option value="">Tất cả danh mục</option>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
       </div>
 
@@ -205,7 +218,12 @@ export default function MenuPage() {
               <motion.div key={item.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className={`bg-gray-900 rounded-2xl border border-gray-800 p-3.5 flex items-center gap-3 ${!item.available ? "opacity-60" : ""}`}
               >
-                <span className="text-2xl flex-shrink-0">{item.imageEmoji}</span>
+                {item.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                ) : (
+                  <span className="text-2xl flex-shrink-0 w-12 h-12 flex items-center justify-center">{item.imageEmoji}</span>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-white text-sm">{item.name}</span>
