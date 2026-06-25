@@ -98,6 +98,16 @@ export const useAppStore = create<AppStore>()(
 );
 
 // ===== MANAGER STORE =====
+export interface ShiftEmployee {
+  id: string;
+  employeeId: string;
+  name: string;
+  role: string;
+  isActive: boolean;
+}
+
+export type ShiftKey = "morning" | "afternoon" | "evening";
+
 interface ManagerStore {
   alerts: Alert[];
   resolveAlert: (alertId: string) => void;
@@ -107,20 +117,44 @@ interface ManagerStore {
   setSelectedBranch: (branchId: string) => void;
   dateRange: "today" | "week" | "month";
   setDateRange: (range: "today" | "week" | "month") => void;
+
+  shiftAssignments: Record<ShiftKey, ShiftEmployee[]>;
+  addToShift: (shift: ShiftKey, emp: ShiftEmployee) => void;
+  removeFromShift: (shift: ShiftKey, empId: string) => void;
 }
 
-export const useManagerStore = create<ManagerStore>((set, get) => ({
-  alerts: initialAlerts,
-  resolveAlert: (alertId) => {
-    set({ alerts: get().alerts.map((a) => a.id === alertId ? { ...a, resolved: true, resolvedAt: new Date().toISOString() } : a) });
-  },
-  activeTab: "overview",
-  setActiveTab: (tab) => set({ activeTab: tab }),
-  selectedBranch: "b001",
-  setSelectedBranch: (branchId) => set({ selectedBranch: branchId }),
-  dateRange: "today",
-  setDateRange: (range) => set({ dateRange: range }),
-}));
+export const useManagerStore = create<ManagerStore>()(
+  persist(
+    (set, get) => ({
+      alerts: initialAlerts,
+      resolveAlert: (alertId) => {
+        set({ alerts: get().alerts.map((a) => a.id === alertId ? { ...a, resolved: true, resolvedAt: new Date().toISOString() } : a) });
+      },
+      activeTab: "overview",
+      setActiveTab: (tab) => set({ activeTab: tab }),
+      selectedBranch: "b001",
+      setSelectedBranch: (branchId) => set({ selectedBranch: branchId }),
+      dateRange: "today",
+      setDateRange: (range) => set({ dateRange: range }),
+
+      shiftAssignments: { morning: [], afternoon: [], evening: [] },
+      addToShift: (shift, emp) => {
+        const current = get().shiftAssignments;
+        const already = current[shift].some((e) => e.id === emp.id);
+        if (already) return;
+        set({ shiftAssignments: { ...current, [shift]: [...current[shift], emp] } });
+      },
+      removeFromShift: (shift, empId) => {
+        const current = get().shiftAssignments;
+        set({ shiftAssignments: { ...current, [shift]: current[shift].filter((e) => e.id !== empId) } });
+      },
+    }),
+    {
+      name: "kfc-sync-manager",
+      partialize: (state) => ({ shiftAssignments: state.shiftAssignments }),
+    }
+  )
+);
 
 // ===== AUTH STORE =====
 const MOCK_ACCOUNTS: AuthUser[] = [

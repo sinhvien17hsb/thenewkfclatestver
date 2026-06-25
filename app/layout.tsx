@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
+import { GeminiChat } from "@/components/chat/GeminiChat";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className="antialiased bg-gray-50 min-h-screen">
         <Navbar />
         {children}
+        <GeminiChat />
         <Toaster
           position="top-right"
           richColors
