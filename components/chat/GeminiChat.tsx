@@ -70,19 +70,14 @@ export function GeminiChat() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages.map((m) => ({
-            role: m.role,
-            parts: [{ text: m.text }],
-          })),
-        }),
+        body: JSON.stringify({ message: trimmed }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error");
-      setMessages((prev) => [...prev, { role: "model", text: data.text }]);
+      setMessages((prev) => [...prev, { role: "model", text: data.reply }]);
     } catch (e: unknown) {
       setMessages((prev) => [...prev, { role: "model", text: `⚠️ Lỗi: ${(e as Error).message}` }]);
     } finally {
@@ -136,7 +131,7 @@ export function GeminiChat() {
                 <div className="text-white font-bold text-sm">The New KFC Assistant</div>
                 <div className="text-green-400 text-[10px] flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                  Powered by Gemini AI
+                  Trợ lý thực đơn KFC
                 </div>
               </div>
               <button onClick={reset} className="text-gray-400 hover:text-white transition-colors p-1" title="Reset chat">
