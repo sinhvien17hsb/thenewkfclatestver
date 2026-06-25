@@ -74,7 +74,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/kfc-logo.png" alt="KFC" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
             <div>
-              <div className="font-black text-sm leading-none text-white">KFC SYNC</div>
+              <div className="font-black text-sm leading-none text-white">The New KFC</div>
               <div className="text-[10px] text-gray-400 leading-none mt-0.5">Branch Manager</div>
             </div>
           </div>
@@ -127,7 +127,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
           <button onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400">
             <Menu className="h-5 w-5" />
           </button>
-          <div className="font-black text-white">KFC SYNC</div>
+          <div className="font-black text-white">The New KFC</div>
           <div className="w-8" />
         </header>
         <main className="flex-1 overflow-auto">{children}</main>

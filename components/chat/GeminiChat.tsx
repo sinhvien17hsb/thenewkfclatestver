@@ -45,7 +45,7 @@ function ChatBubble({ msg }: { msg: Message }) {
 export function GeminiChat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "model", text: "Xin chào! 👋 Tôi là KFC Sync Assistant. Tôi có thể giúp bạn tìm hiểu thực đơn, cách đặt hàng, hoặc bất kỳ câu hỏi nào về KFC. Bạn cần giúp gì?" },
+    { role: "model", text: "Xin chào! 👋 Tôi là The New KFC Assistant. Tôi có thể giúp bạn tìm hiểu thực đơn, cách đặt hàng, hoặc bất kỳ câu hỏi nào về KFC. Bạn cần giúp gì?" },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -91,7 +91,7 @@ export function GeminiChat() {
   };
 
   const reset = () => {
-    setMessages([{ role: "model", text: "Xin chào! 👋 Tôi là KFC Sync Assistant. Bạn cần giúp gì?" }]);
+    setMessages([{ role: "model", text: "Xin chào! 👋 Tôi là The New KFC Assistant. Bạn cần giúp gì?" }]);
     setInput("");
   };
 
@@ -133,7 +133,7 @@ export function GeminiChat() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/kfc-logo.png" alt="KFC" className="w-8 h-8 object-contain rounded-full bg-white p-0.5" />
               <div className="flex-1">
-                <div className="text-white font-bold text-sm">KFC Sync Assistant</div>
+                <div className="text-white font-bold text-sm">The New KFC Assistant</div>
                 <div className="text-green-400 text-[10px] flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
                   Powered by Gemini AI

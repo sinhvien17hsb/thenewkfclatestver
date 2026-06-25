@@ -36,6 +36,7 @@ export function usePolling<T>(
   useEffect(() => {
     if (!enabled) return;
     fetchData();
+    if (interval <= 0) return () => { abortRef.current?.abort(); };
     const timer = setInterval(fetchData, interval);
     return () => {
       clearInterval(timer);

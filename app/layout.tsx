@@ -5,7 +5,7 @@ import { GeminiChat } from "@/components/chat/GeminiChat";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "KFC Sync - AI-Powered Restaurant Operations Platform",
+  title: "The New KFC - AI-Powered Restaurant Operations Platform",
   description:
     "Nền tảng chuyển đổi số nhà hàng KFC: Tích hợp đặt hàng thông minh, quản lý bếp AI, kiểm soát chất lượng và phân tích dữ liệu thời gian thực.",
   keywords: "KFC, restaurant management, digital transformation, AI, POS, quality control",

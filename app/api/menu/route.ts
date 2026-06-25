@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getSessionUser } from "@/lib/auth-server";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -20,11 +19,6 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const user = await getSessionUser();
-  if (!user || user.role !== "MANAGER") {
-    return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
-  }
-
   const { name, description, category, price, imageEmoji, imageUrl, available, popular, prepTime } = await req.json();
   if (!name || !category || !price) {
     return NextResponse.json({ error: "Thiếu thông tin bắt buộc." }, { status: 400 });

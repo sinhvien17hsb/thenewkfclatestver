@@ -50,7 +50,7 @@ export default function StaffLoginPage() {
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/kfc-logo.png" alt="KFC" className="w-16 h-16 object-contain rounded-2xl bg-white mx-auto mb-4 shadow-xl p-1" />
-          <h1 className="text-2xl font-black text-white">KFC Sync</h1>
+          <h1 className="text-2xl font-black text-white">The New KFC</h1>
           <p className="text-gray-500 text-sm mt-1">Đăng nhập nhân viên</p>
         </div>
 

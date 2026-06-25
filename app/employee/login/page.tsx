@@ -62,7 +62,7 @@ function LoginForm() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/kfc-logo.png" alt="KFC" className="w-12 h-12 object-contain rounded-full bg-white p-1" />
             <div>
-              <div className="font-black text-2xl tracking-wide text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">KFC SYNC</div>
+              <div className="font-black text-2xl tracking-wide text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">The New KFC</div>
               <div className="text-xs text-gray-400">Branch Manager Portal</div>
             </div>
           </div>

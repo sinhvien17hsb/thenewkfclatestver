@@ -230,7 +230,7 @@ export default function SettingsPage() {
           <div className="bg-white px-4 py-4 text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/kfc-logo.png" alt="KFC" className="w-14 h-14 object-contain rounded-2xl bg-white mx-auto mb-3 shadow-md p-1" />
-            <div className="font-black text-gray-900 text-base">KFC SYNC</div>
+            <div className="font-black text-gray-900 text-base">The New KFC</div>
             <div className="text-xs text-gray-400 mt-1">{tr("settings_version")}</div>
             <div className="text-xs text-gray-400 mt-0.5">{tr("settings_copyright")}</div>
           </div>

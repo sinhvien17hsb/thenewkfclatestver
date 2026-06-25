@@ -33,7 +33,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-[#E4002B] flex items-center justify-center font-black text-sm">K</div>
             <div>
-              <div className="font-black text-sm leading-none">KFC Sync</div>
+              <div className="font-black text-sm leading-none">The New KFC</div>
               {user && <div className="text-[10px] text-gray-400 leading-none mt-0.5">{user.branch}</div>}
             </div>
           </div>
