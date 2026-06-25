@@ -222,7 +222,6 @@ export const useAuthStore = create<AuthStore>()(
           (u) => (u.employeeId === idOrEmail || u.email === idOrEmail) && u.password === password
         );
         if (!found) return { success: false, error: "Mã nhân viên/email hoặc mật khẩu không đúng." };
-        if (found.role !== "manager") return { success: false, error: "Chỉ Branch Manager mới có thể đăng nhập KFC Sync." };
         set({ user: found });
         return { success: true };
       },
