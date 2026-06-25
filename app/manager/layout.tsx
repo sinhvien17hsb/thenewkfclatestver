@@ -27,7 +27,7 @@ const UNIQUE_NAV = NAV.filter((item, idx, arr) => arr.findIndex(n => n.href === 
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, login } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -44,35 +44,8 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   if (!mounted) return null;
 
   if (!user) {
-    return (
-      <div className="fixed inset-0 bg-gray-950 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-xs">
-          <div className="text-center mb-8">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/kfc-logo.png" alt="KFC" className="w-16 h-16 mx-auto mb-3 rounded-full bg-white p-1 object-contain" />
-            <h2 className="text-white text-2xl font-black">The New KFC</h2>
-            <p className="text-gray-400 text-sm mt-1">Chọn vai trò để tiếp tục</p>
-          </div>
-          <div className="space-y-3">
-            {([
-              { id: "supervisor01", label: "Giám sát ca",         emoji: "🎯", desc: "Ca làm việc",                    border: "border-purple-700 hover:border-purple-500" },
-              { id: "manager01",    label: "Quản lý cửa hàng",    emoji: "👔", desc: "Toàn quyền · Dashboard · Báo cáo", border: "border-green-700 hover:border-green-500" },
-            ] as const).map((r) => (
-              <button key={r.id} onClick={() => login(r.id, "123456")}
-                className={`w-full flex items-center gap-4 bg-gray-900 border-2 ${r.border} rounded-2xl px-5 py-4 transition-all text-left group`}
-              >
-                <span className="text-3xl">{r.emoji}</span>
-                <div>
-                  <div className="text-white font-bold text-sm">{r.label}</div>
-                  <div className="text-gray-500 text-xs mt-0.5 group-hover:text-gray-300 transition-colors">{r.desc}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-          <p className="text-center text-xs text-gray-600 mt-6">Không cần mật khẩu</p>
-        </div>
-      </div>
-    );
+    router.replace("/employee/login?redirect=" + encodeURIComponent(pathname));
+    return null;
   }
   if (user.role === "kitchen") return null;
   if (user.role === "supervisor" && !pathname.startsWith("/manager/shifts")) return null;

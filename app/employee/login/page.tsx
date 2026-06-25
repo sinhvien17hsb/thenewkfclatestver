@@ -1,7 +1,12 @@
 "use client";
-import { useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
+import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuthStore } from "@/lib/store";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AUTH_ROLE_LABELS, AUTH_ROLE_AVATARS } from "@/lib/types";
 
 const REDIRECT_MAP: Record<string, string> = {
@@ -10,10 +15,10 @@ const REDIRECT_MAP: Record<string, string> = {
   manager: "/manager/dashboard",
 };
 
-const ROLES = [
-  { id: "kitchen01",    role: "kitchen" as const,    border: "border-orange-700 hover:border-orange-500", desc: "Quản lý đơn bếp · SOP" },
-  { id: "supervisor01", role: "supervisor" as const,  border: "border-purple-700 hover:border-purple-500", desc: "Bếp + Ca làm việc" },
-  { id: "manager01",    role: "manager" as const,     border: "border-green-700 hover:border-green-500",   desc: "Toàn quyền · Dashboard · Báo cáo" },
+const DEMO = [
+  { id: "kitchen01",    pw: "123456", role: "kitchen" as const },
+  { id: "supervisor01", pw: "123456", role: "supervisor" as const },
+  { id: "manager01",    pw: "123456", role: "manager" as const },
 ];
 
 function LoginContent() {
@@ -21,44 +26,108 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const { login, user } = useAuthStore();
+  const [idOrEmail, setIdOrEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (user) {
-      router.replace(redirect ?? REDIRECT_MAP[user.role] ?? "/");
-    }
+    if (user) router.replace(redirect ?? REDIRECT_MAP[user.role] ?? "/");
   }, [user, router, redirect]);
 
-  const handleRole = (id: string, role: string) => {
-    login(id, "123456");
-    router.replace(redirect ?? REDIRECT_MAP[role] ?? "/");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!idOrEmail.trim() || !password.trim()) { setError("Vui lòng điền đầy đủ thông tin."); return; }
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 400));
+    const result = login(idOrEmail.trim(), password);
+    setLoading(false);
+    if (!result.success) {
+      setError(result.error ?? "Mã nhân viên hoặc mật khẩu không đúng.");
+    } else {
+      toast.success("Đăng nhập thành công!");
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-xs">
-        <div className="text-center mb-8">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm space-y-4">
+        {/* Logo */}
+        <div className="text-center mb-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/kfc-logo.png" alt="KFC" className="w-16 h-16 mx-auto mb-3 rounded-full bg-white p-1 object-contain" />
-          <h2 className="text-white text-2xl font-black">The New KFC</h2>
-          <p className="text-gray-400 text-sm mt-1">Chọn vai trò để tiếp tục</p>
+          <h1 className="text-2xl font-black text-white">The New KFC</h1>
+          <p className="text-gray-500 text-sm mt-1">Đăng nhập nhân viên</p>
         </div>
-        <div className="space-y-3">
-          {ROLES.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => handleRole(r.id, r.role)}
-              className={`w-full flex items-center gap-4 bg-gray-900 border-2 ${r.border} rounded-2xl px-5 py-4 transition-all text-left group`}
+
+        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-6 space-y-4 border border-gray-800">
+          {error && (
+            <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+              className="bg-red-950/60 border border-red-800 text-red-300 rounded-xl px-4 py-3 text-sm"
             >
-              <span className="text-3xl">{AUTH_ROLE_AVATARS[r.role]}</span>
-              <div>
-                <div className="text-white font-bold text-sm">{AUTH_ROLE_LABELS[r.role]}</div>
-                <div className="text-gray-500 text-xs mt-0.5 group-hover:text-gray-300 transition-colors">{r.desc}</div>
-              </div>
-            </button>
-          ))}
+              {error}
+            </motion.div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mã nhân viên</label>
+            <Input
+              value={idOrEmail}
+              onChange={(e) => setIdOrEmail(e.target.value)}
+              placeholder="VD: kitchen01"
+              className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-600 h-11 rounded-xl focus:border-[#E4002B]"
+              autoComplete="username"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mật khẩu</label>
+            <div className="relative">
+              <Input
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••"
+                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-600 h-11 rounded-xl pr-10 focus:border-[#E4002B]"
+                autoComplete="current-password"
+              />
+              <button type="button" onClick={() => setShowPw(!showPw)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+              >
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full h-11 rounded-xl text-base" disabled={loading}>
+            {loading
+              ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Đang xác thực...</>
+              : <><LogIn className="h-4 w-4 mr-2" />Đăng nhập</>
+            }
+          </Button>
+        </form>
+
+        {/* Demo quick-fill */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">Tài khoản demo (mật khẩu: 123456)</p>
+          <div className="space-y-2">
+            {DEMO.map((acc) => (
+              <button key={acc.id} type="button"
+                onClick={() => { setIdOrEmail(acc.id); setPassword(acc.pw); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 transition-colors text-left"
+              >
+                <span className="text-xl">{AUTH_ROLE_AVATARS[acc.role]}</span>
+                <div>
+                  <div className="text-white text-xs font-bold">{AUTH_ROLE_LABELS[acc.role]}</div>
+                  <div className="text-gray-500 text-xs font-mono">{acc.id}</div>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-        <p className="text-center text-xs text-gray-600 mt-6">Không cần mật khẩu</p>
-      </div>
+      </motion.div>
     </div>
   );
 }
