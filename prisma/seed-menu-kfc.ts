@@ -155,6 +155,95 @@ async function main() {
   }
   console.log(`✓ Created ${created} new items, updated ${updated} existing items`);
   console.log(`✓ Total menu: ${menuItems.length} items`);
+
+  // ─── SEED DEMO ORDERS ───
+  // Wipe & re-seed every build so timestamps stay fresh (0–25 min ago)
+  await prisma.orderStatusHistory.deleteMany({ where: { order: { orderNumber: { startsWith: "DEMO" } } } });
+  await prisma.orderItem.deleteMany({ where: { order: { orderNumber: { startsWith: "DEMO" } } } });
+  await prisma.order.deleteMany({ where: { orderNumber: { startsWith: "DEMO" } } });
+
+  const allItems = await prisma.menuItem.findMany({ select: { id: true, name: true, price: true } });
+  const byName = (name: string) => allItems.find((m: { id: string; name: string; price: number }) => m.name === name)!;
+  const minsAgo = (m: number) => new Date(Date.now() - m * 60 * 1000);
+
+  const demoOrders: Array<{
+    orderNumber: string; tableNumber: string; customerName: string;
+    status: string; minutesAgo: number; estimatedTime: number;
+    items: Array<{ name: string; qty: number }>;
+  }> = [
+    {
+      orderNumber: "DEMO0101", tableNumber: "3", customerName: "Nguyễn Văn An",
+      status: "queued", minutesAgo: 2, estimatedTime: 15,
+      items: [{ name: "Combo 99K – 4 Miếng Gà", qty: 1 }, { name: "Pepsi (Vừa)", qty: 2 }],
+    },
+    {
+      orderNumber: "DEMO0102", tableNumber: "7", customerName: "Trần Thị Bình",
+      status: "queued", minutesAgo: 5, estimatedTime: 12,
+      items: [{ name: "Combo Tiêu Tung Chill", qty: 1 }, { name: "Khoai Tây Chiên (Vừa)", qty: 1 }],
+    },
+    {
+      orderNumber: "DEMO0103", tableNumber: "12", customerName: "Lê Minh Châu",
+      status: "queued", minutesAgo: 7, estimatedTime: 18,
+      items: [{ name: "Combo Cùng Xơi", qty: 1 }, { name: "7Up (Vừa)", qty: 2 }, { name: "1 Bánh Trứng", qty: 2 }],
+    },
+    {
+      orderNumber: "DEMO0201", tableNumber: "2", customerName: "Phạm Thị Dung",
+      status: "preparing", minutesAgo: 10, estimatedTime: 15,
+      items: [{ name: "Combo Siêu Nuggets", qty: 1 }, { name: "Khoai Tây Chiên (Đại)", qty: 1 }, { name: "Pepsi Không Đường (Vừa)", qty: 1 }],
+    },
+    {
+      orderNumber: "DEMO0202", tableNumber: "9", customerName: "Hoàng Văn Em",
+      status: "preparing", minutesAgo: 14, estimatedTime: 20,
+      items: [{ name: "Combo Gà Rôm Rả 245k", qty: 1 }, { name: "Lipton (Vừa)", qty: 3 }],
+    },
+    {
+      orderNumber: "DEMO0203", tableNumber: "1", customerName: "Vũ Thị Phương",
+      status: "preparing", minutesAgo: 16, estimatedTime: 18,
+      items: [{ name: "Combo Chanh Sang Chảnh", qty: 1 }, { name: "Súp Rong Biển", qty: 2 }],
+    },
+    {
+      orderNumber: "DEMO0301", tableNumber: "6", customerName: "Đặng Văn Giang",
+      status: "quality_check", minutesAgo: 20, estimatedTime: 15,
+      items: [{ name: "Combo Cùng Vui", qty: 1 }, { name: "Khoai Tây Nghiền (Lớn)", qty: 2 }, { name: "Pepsi (Đại)", qty: 2 }],
+    },
+    {
+      orderNumber: "DEMO0302", tableNumber: "4", customerName: "Bùi Thị Hoa",
+      status: "quality_check", minutesAgo: 22, estimatedTime: 20,
+      items: [{ name: "Combo Cùng Tiệc", qty: 1 }, { name: "4 Bánh Trứng", qty: 1 }],
+    },
+    {
+      orderNumber: "DEMO0401", tableNumber: "11", customerName: "Ngô Văn Inh",
+      status: "ready", minutesAgo: 23, estimatedTime: 15,
+      items: [{ name: "Combo Gà & Nuggets", qty: 2 }, { name: "7Up (Đại)", qty: 2 }],
+    },
+    {
+      orderNumber: "DEMO0402", tableNumber: "8", customerName: "Đinh Thị Kim",
+      status: "ready", minutesAgo: 25, estimatedTime: 18,
+      items: [{ name: "Combo Cùng Quẩy", qty: 1 }, { name: "Pepsi Không Đường (Đại)", qty: 2 }, { name: "1 Bánh Trứng", qty: 3 }],
+    },
+  ];
+
+  for (const o of demoOrders) {
+    const orderItems = o.items.map((i) => {
+      const mi = byName(i.name);
+      return { menuItemId: mi.id, quantity: i.qty, price: mi.price, notes: null };
+    });
+    const total = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
+    await prisma.order.create({
+      data: {
+        orderNumber: o.orderNumber,
+        tableNumber: o.tableNumber,
+        customerName: o.customerName,
+        status: o.status,
+        totalAmount: total,
+        estimatedTime: o.estimatedTime,
+        createdAt: minsAgo(o.minutesAgo),
+        items: { create: orderItems },
+        statusHistory: { create: [{ status: o.status }] },
+      },
+    });
+  }
+  console.log(`✓ Seeded ${demoOrders.length} demo orders (statuses: queued×3, preparing×3, quality_check×2, ready×2)`);
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());
