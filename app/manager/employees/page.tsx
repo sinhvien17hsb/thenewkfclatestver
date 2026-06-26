@@ -1,32 +1,62 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Users, ToggleLeft, ToggleRight, Loader2, Search, ChefHat, CreditCard, Briefcase } from "lucide-react";
+import { Users, ToggleLeft, ToggleRight, Loader2, Search, ChefHat, CreditCard, Briefcase, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { usePolling } from "@/lib/hooks";
+import { useAuthStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 
-interface Employee { id: string; name: string; employeeId: string; branch: string; role: string; isActive: boolean; }
+interface DbEmployee  { id: string; name: string; employeeId: string; branch: string; role: string; isActive: boolean; }
+interface DisplayEmployee extends DbEmployee { source: "db" | "store"; }
 
 const ROLE_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  KITCHEN: { label: "Bếp", icon: ChefHat, color: "text-orange-400" },
-  CASHIER: { label: "Thu ngân", icon: CreditCard, color: "text-blue-400" },
-  MANAGER: { label: "Quản lý", icon: Briefcase, color: "text-purple-400" },
+  KITCHEN:  { label: "Bếp",      icon: ChefHat,     color: "text-orange-400" },
+  CASHIER:  { label: "Thu ngân", icon: CreditCard,   color: "text-blue-400"  },
+  MANAGER:  { label: "Quản lý",  icon: Briefcase,    color: "text-purple-400" },
+  kitchen:  { label: "Bếp",      icon: ChefHat,     color: "text-orange-400" },
+  supervisor:{ label: "Giám sát",icon: ShieldCheck,  color: "text-yellow-400" },
+  manager:  { label: "Quản lý",  icon: Briefcase,    color: "text-purple-400" },
 };
 
 export default function EmployeesPage() {
-  const { data: employees, refetch } = usePolling<Employee[]>("/api/employees", 0);
+  const { users } = useAuthStore();
+  const { data: dbEmployees, refetch } = usePolling<DbEmployee[]>("/api/employees", 0);
   const [search, setSearch] = useState("");
   const [toggling, setToggling] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState("");
 
-  const filtered = (employees ?? []).filter((e) => {
-    const matchSearch = e.name.toLowerCase().includes(search.toLowerCase()) || e.employeeId.toLowerCase().includes(search.toLowerCase());
-    const matchRole = !roleFilter || e.role === roleFilter;
+  // Map Zustand store users to display shape
+  const storeEmployees: DisplayEmployee[] = users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    employeeId: u.employeeId,
+    branch: u.branchName ?? "",
+    role: u.role,
+    isActive: true,
+    source: "store",
+  }));
+
+  // DB employees take priority; fill in store-only accounts not in DB
+  const dbIds = new Set((dbEmployees ?? []).map((e) => e.employeeId));
+  const allEmployees: DisplayEmployee[] = [
+    ...(dbEmployees ?? []).map((e) => ({ ...e, source: "db" as const })),
+    ...storeEmployees.filter((e) => !dbIds.has(e.employeeId)),
+  ];
+
+  const filtered = allEmployees.filter((e) => {
+    const matchSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
+      e.employeeId.toLowerCase().includes(search.toLowerCase());
+    const normalizedRole = e.role.toUpperCase();
+    const matchRole = !roleFilter || normalizedRole === roleFilter || e.role === roleFilter;
     return matchSearch && matchRole;
   });
 
-  const handleToggle = async (emp: Employee) => {
+  const handleToggle = async (emp: DisplayEmployee) => {
+    if (emp.source === "store") {
+      toast.error("Tài khoản hệ thống không thể vô hiệu hóa.");
+      return;
+    }
     setToggling(emp.id);
     try {
       const res = await fetch(`/api/employees/${emp.id}`, {
@@ -41,13 +71,17 @@ export default function EmployeesPage() {
     finally { setToggling(null); }
   };
 
-  const active = (employees ?? []).filter((e) => e.isActive).length;
+  const active = allEmployees.filter((e) => e.isActive).length;
 
   return (
     <div className="p-4 md:p-6">
       <div className="mb-4">
-        <h1 className="text-xl font-black text-white flex items-center gap-2"><Users className="h-5 w-5 text-[#E4002B]" />Nhân viên</h1>
-        <p className="text-gray-500 text-xs mt-0.5">{active} đang hoạt động · {(employees ?? []).length - active} vô hiệu hóa</p>
+        <h1 className="text-xl font-black text-white flex items-center gap-2">
+          <Users className="h-5 w-5 text-[#E4002B]" />Nhân viên
+        </h1>
+        <p className="text-gray-500 text-xs mt-0.5">
+          {active} đang hoạt động · {allEmployees.length - active} vô hiệu hóa · {allEmployees.length} tổng
+        </p>
       </div>
 
       <div className="flex gap-2 mb-4 flex-wrap">
@@ -63,16 +97,14 @@ export default function EmployeesPage() {
           <option value="KITCHEN">Bếp</option>
           <option value="CASHIER">Thu ngân</option>
           <option value="MANAGER">Quản lý</option>
+          <option value="supervisor">Giám sát</option>
         </select>
       </div>
 
       {filtered.length === 0 ? (
         <div className="text-center py-20 text-gray-600">
           <Users className="h-12 w-12 mx-auto mb-3" />
-          <p className="font-semibold">{(employees ?? []).length === 0 ? "Chưa có nhân viên" : "Không tìm thấy"}</p>
-          {(employees ?? []).length === 0 && (
-            <p className="text-sm mt-1">Nhân viên đăng ký tại /staff/register sẽ xuất hiện ở đây.</p>
-          )}
+          <p className="font-semibold">{allEmployees.length === 0 ? "Chưa có nhân viên" : "Không tìm thấy"}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -90,16 +122,20 @@ export default function EmployeesPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-white text-sm">{emp.name}</span>
                     {!emp.isActive && <span className="text-[10px] bg-gray-800 text-gray-600 px-1.5 py-0.5 rounded-md">Vô hiệu</span>}
+                    {emp.source === "store" && (
+                      <span className="text-[10px] bg-blue-950/60 text-blue-400 border border-blue-800 px-1.5 py-0.5 rounded-md">Hệ thống</span>
+                    )}
                   </div>
                   <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
                     <span className="font-mono">{emp.employeeId}</span>
                     <span>·</span>
                     <span className={meta.color}>{meta.label}</span>
-                    <span>·</span>
-                    <span className="truncate">{emp.branch}</span>
+                    {emp.branch && <><span>·</span><span className="truncate">{emp.branch}</span></>}
                   </div>
                 </div>
-                <button onClick={() => handleToggle(emp)} disabled={toggling === emp.id} className="flex-shrink-0">
+                <button onClick={() => handleToggle(emp)} disabled={toggling === emp.id || emp.source === "store"}
+                  className="flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
                   {toggling === emp.id ? (
                     <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
                   ) : emp.isActive ? (
