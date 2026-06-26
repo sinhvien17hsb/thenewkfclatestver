@@ -33,12 +33,15 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!user) { router.replace("/employee/login?redirect=" + encodeURIComponent(pathname)); return; }
-    if (user.role === "kitchen") { router.replace("/kitchen/orders"); return; }
-    if (user.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
+    // Read directly from store so we always get the post-hydration value,
+    // not a potentially stale React snapshot.
+    const u = useAuthStore.getState().user;
+    if (!u) { router.replace("/employee/login?redirect=" + encodeURIComponent(pathname)); return; }
+    if (u.role === "kitchen") { router.replace("/kitchen/orders"); return; }
+    if (u.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
       router.replace("/manager/shifts");
     }
-  }, [hydrated, user, pathname, router]);
+  }, [hydrated, pathname, router]);
 
   if (!hydrated) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">

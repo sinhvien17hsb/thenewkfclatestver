@@ -264,18 +264,25 @@ export const useAuthStore = create<AuthStore>()(
   )
 );
 
-// Returns true only after Zustand has finished reading localStorage.
-// Prevents auth redirects from firing before the persisted session loads.
+// Returns true only after Zustand has finished reading from localStorage AND
+// React has processed the resulting store update. The setTimeout(0) defers
+// to the next macro task so all microtasks (Zustand's .then() chains) and
+// React's batched re-renders complete before we run auth checks.
 export function useAuthHydrated() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    // This runs client-side only — safe to access persist API here
+    let cancelled = false;
+    const markReady = () => { if (!cancelled) setHydrated(true); };
+
     if (useAuthStore.persist?.hasHydrated()) {
-      setHydrated(true);
-      return;
+      const tid = setTimeout(markReady, 0);
+      return () => { cancelled = true; clearTimeout(tid); };
     }
-    const unsub = useAuthStore.persist?.onFinishHydration(() => setHydrated(true));
-    return unsub;
+
+    const unsub = useAuthStore.persist?.onFinishHydration(() => {
+      setTimeout(markReady, 0);
+    });
+    return () => { cancelled = true; unsub?.(); };
   }, []);
   return hydrated;
 }

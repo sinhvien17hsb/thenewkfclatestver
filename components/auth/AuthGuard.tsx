@@ -11,16 +11,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!user) {
+    const u = useAuthStore.getState().user;
+    if (!u) {
       router.replace(`/employee/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
     if (!canAccess(pathname)) {
-      if (user.role === "kitchen") router.replace("/kitchen/orders");
-      else if (user.role === "supervisor") router.replace("/manager/shifts");
+      if (u.role === "kitchen") router.replace("/kitchen/orders");
+      else if (u.role === "supervisor") router.replace("/manager/shifts");
       else router.replace("/unauthorized");
     }
-  }, [hydrated, user, pathname, router, canAccess]);
+  }, [hydrated, pathname, router, canAccess]);
 
   if (!hydrated) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
