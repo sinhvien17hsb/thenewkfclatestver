@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuthStore, useAuthHydrated } from "@/lib/store";
 
 const Spinner = () => (
@@ -11,7 +11,6 @@ const Spinner = () => (
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { canAccess } = useAuthStore();
   const hydrated = useAuthHydrated();
   const [authReady, setAuthReady] = useState(false);
@@ -20,17 +19,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
     const u = useAuthStore.getState().user;
     if (!u) {
-      router.replace(`/staff/login?redirect=${encodeURIComponent(pathname)}`);
+      window.location.replace(`/staff/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
     if (!canAccess(pathname)) {
-      if (u.role === "kitchen") router.replace("/kitchen/orders");
-      else if (u.role === "supervisor") router.replace("/manager/shifts");
-      else router.replace("/unauthorized");
+      if (u.role === "kitchen") window.location.replace("/kitchen/orders");
+      else if (u.role === "supervisor") window.location.replace("/manager/shifts");
+      else window.location.replace("/unauthorized");
       return;
     }
     setAuthReady(true);
-  }, [hydrated, pathname, router, canAccess]);
+  }, [hydrated, pathname, canAccess]);
 
   if (!authReady) return <Spinner />;
   return <>{children}</>;

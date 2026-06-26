@@ -21,7 +21,6 @@ const NAV = [
   { href: "/manager/analytics",  label: "Báo cáo",     icon: LineChart },
 ];
 
-// Deduplicate by href
 const UNIQUE_NAV = NAV.filter((item, idx, arr) => arr.findIndex(n => n.href === item.href) === idx);
 
 const Spinner = () => (
@@ -30,37 +29,45 @@ const Spinner = () => (
   </div>
 );
 
+const LoginPrompt = () => (
+  <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
+    <p className="text-gray-400 text-sm">Vui lòng đăng nhập để tiếp tục.</p>
+    <a href="/staff/login"
+      className="px-5 py-2.5 bg-[#E4002B] text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors"
+    >
+      Đăng nhập
+    </a>
+  </div>
+);
+
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout } = useAuthStore(); // subscription for reactive re-renders
   const hydrated = useAuthHydrated();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
 
+  // Hard-navigate away if wrong role (kitchen/supervisor)
   useEffect(() => {
     if (!hydrated) return;
     const u = useAuthStore.getState().user;
-    if (!u) { setAuthReady(false); return; }
+    if (!u) return;
     if (u.role === "kitchen") { window.location.replace("/kitchen/orders"); return; }
     if (u.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
-      window.location.replace("/manager/shifts"); return;
+      window.location.replace("/manager/shifts");
     }
-    setAuthReady(true);
   }, [hydrated, pathname]);
 
+  // Still waiting for hydration
   if (!hydrated) return <Spinner />;
 
-  if (!authReady) return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
-      <p className="text-gray-400 text-sm">Vui lòng đăng nhập để tiếp tục.</p>
-      <a href="/staff/login"
-        className="px-5 py-2.5 bg-[#E4002B] text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors"
-      >
-        Đăng nhập
-      </a>
-    </div>
-  );
+  // Read live store value — avoids React snapshot lag on first render
+  const currentUser = useAuthStore.getState().user ?? user;
+  if (!currentUser) return <LoginPrompt />;
+
+  // Wrong role: effect will hard-navigate, show spinner in the meantime
+  if (currentUser.role === "kitchen") return <Spinner />;
+  if (currentUser.role === "supervisor" && !pathname.startsWith("/manager/shifts")) return <Spinner />;
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
@@ -71,18 +78,15 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
-      {/* Sidebar backdrop on mobile */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={cn(
         "fixed top-0 left-0 h-full w-56 bg-gray-900 border-r border-gray-800 z-50 flex flex-col transition-transform duration-200",
         "md:translate-x-0 md:static md:z-auto",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        {/* Brand */}
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -97,7 +101,6 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
           </button>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {UNIQUE_NAV.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} onClick={() => setSidebarOpen(false)}
@@ -114,15 +117,14 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
           ))}
         </nav>
 
-        {/* User footer */}
         <div className="p-3 border-t border-gray-800">
           <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
             <div className="w-7 h-7 rounded-full bg-[#E4002B] flex items-center justify-center text-sm">
-              {user?.avatar}
+              {currentUser.avatar}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-white truncate">{user?.name}</div>
-              <div className="text-[10px] text-gray-500 truncate">{user?.branchName?.replace("KFC ", "")}</div>
+              <div className="text-xs font-semibold text-white truncate">{currentUser.name}</div>
+              <div className="text-[10px] text-gray-500 truncate">{currentUser.branchName?.replace("KFC ", "")}</div>
             </div>
           </div>
           <button onClick={handleLogout}
@@ -134,9 +136,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile header */}
         <header className="md:hidden bg-gray-900 border-b border-gray-800 sticky top-0 z-30 px-4 h-14 flex items-center justify-between">
           <button onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400">
             <Menu className="h-5 w-5" />

@@ -279,10 +279,10 @@ export function useAuthHydrated() {
       return () => { cancelled = true; clearTimeout(tid); };
     }
 
-    const unsub = useAuthStore.persist?.onFinishHydration(() => {
-      setTimeout(markReady, 0);
-    });
-    return () => { cancelled = true; unsub?.(); };
+    const unsub = useAuthStore.persist?.onFinishHydration(() => setTimeout(markReady, 0));
+    // Fallback: if persist API is missing or never fires, unblock after 400ms
+    const fallback = setTimeout(markReady, 400);
+    return () => { cancelled = true; unsub?.(); clearTimeout(fallback); };
   }, []);
   return hydrated;
 }
