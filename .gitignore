@@ -45,3 +45,5 @@ next-env.d.ts
 # local database
 # dev.db is committed so Vercel has seed data
 dev.db-journal
+
+.vercel
