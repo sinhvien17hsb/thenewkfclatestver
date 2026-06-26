@@ -24,33 +24,34 @@ const NAV = [
 // Deduplicate by href
 const UNIQUE_NAV = NAV.filter((item, idx, arr) => arr.findIndex(n => n.href === item.href) === idx);
 
+const Spinner = () => (
+  <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-[#E4002B] border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const hydrated = useAuthHydrated();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Only true after the auth check confirms the user is allowed here.
+  // Avoids rendering content based on a stale React snapshot of `user`.
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     if (!hydrated) return;
-    // Read directly from store so we always get the post-hydration value,
-    // not a potentially stale React snapshot.
     const u = useAuthStore.getState().user;
     if (!u) { router.replace("/employee/login?redirect=" + encodeURIComponent(pathname)); return; }
     if (u.role === "kitchen") { router.replace("/kitchen/orders"); return; }
     if (u.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
-      router.replace("/manager/shifts");
+      router.replace("/manager/shifts"); return;
     }
+    setAuthReady(true);
   }, [hydrated, pathname, router]);
 
-  if (!hydrated) return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-[#E4002B] border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-
-  if (!user || user.role === "kitchen") return null;
-  if (user.role === "supervisor" && !pathname.startsWith("/manager/shifts")) return null;
+  if (!authReady) return <Spinner />;
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
@@ -108,11 +109,11 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
         <div className="p-3 border-t border-gray-800">
           <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
             <div className="w-7 h-7 rounded-full bg-[#E4002B] flex items-center justify-center text-sm">
-              {user.avatar}
+              {user?.avatar}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-white truncate">{user.name}</div>
-              <div className="text-[10px] text-gray-500 truncate">{user.branchName.replace("KFC ", "")}</div>
+              <div className="text-xs font-semibold text-white truncate">{user?.name}</div>
+              <div className="text-[10px] text-gray-500 truncate">{user?.branchName?.replace("KFC ", "")}</div>
             </div>
           </div>
           <button onClick={handleLogout}
