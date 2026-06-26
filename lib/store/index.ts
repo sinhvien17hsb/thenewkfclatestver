@@ -264,25 +264,22 @@ export const useAuthStore = create<AuthStore>()(
   )
 );
 
-// Returns true only after Zustand has finished reading from localStorage AND
-// React has processed the resulting store update. The setTimeout(0) defers
-// to the next macro task so all microtasks (Zustand's .then() chains) and
-// React's batched re-renders complete before we run auth checks.
+// Read the persisted auth user directly from localStorage.
+// This bypasses all Zustand persist timing issues — localStorage is always
+// synchronous and available on the client after mount.
+export function readStoredAuthUser(): import("@/lib/types").AuthUser | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("kfc-sync-auth");
+    return raw ? (JSON.parse(raw)?.state?.user ?? null) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Kept for backwards compatibility — now simply a mounted flag.
 export function useAuthHydrated() {
   const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    const markReady = () => { if (!cancelled) setHydrated(true); };
-
-    if (useAuthStore.persist?.hasHydrated()) {
-      const tid = setTimeout(markReady, 0);
-      return () => { cancelled = true; clearTimeout(tid); };
-    }
-
-    const unsub = useAuthStore.persist?.onFinishHydration(() => setTimeout(markReady, 0));
-    // Fallback: if persist API is missing or never fires, unblock after 400ms
-    const fallback = setTimeout(markReady, 400);
-    return () => { cancelled = true; unsub?.(); clearTimeout(fallback); };
-  }, []);
+  useEffect(() => { setHydrated(true); }, []);
   return hydrated;
 }

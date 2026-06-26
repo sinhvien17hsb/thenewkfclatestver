@@ -7,7 +7,8 @@ import {
   UtensilsCrossed, Menu, X, Clock, ShieldCheck, Bell, LineChart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuthStore, useAuthHydrated } from "@/lib/store";
+import { useAuthStore, readStoredAuthUser } from "@/lib/store";
+import type { AuthUser } from "@/lib/types";
 
 const NAV = [
   { href: "/manager/dashboard",  label: "Tổng quan",   icon: LayoutDashboard },
@@ -43,29 +44,32 @@ const LoginPrompt = () => (
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuthStore(); // subscription for reactive re-renders
-  const hydrated = useAuthHydrated();
+  const { logout } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Hard-navigate away if wrong role (kitchen/supervisor)
+  // Read user directly from localStorage on mount — always reliable on client
   useEffect(() => {
-    if (!hydrated) return;
-    const u = useAuthStore.getState().user;
-    if (!u) return;
-    if (u.role === "kitchen") { window.location.replace("/kitchen/orders"); return; }
-    if (u.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
+    const u = readStoredAuthUser();
+    setCurrentUser(u);
+    setMounted(true);
+  }, []);
+
+  // Re-check role when navigating within manager pages
+  useEffect(() => {
+    if (!mounted || !currentUser) return;
+    if (currentUser.role === "kitchen") {
+      window.location.replace("/kitchen/orders");
+      return;
+    }
+    if (currentUser.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
       window.location.replace("/manager/shifts");
     }
-  }, [hydrated, pathname]);
+  }, [mounted, currentUser, pathname]);
 
-  // Still waiting for hydration
-  if (!hydrated) return <Spinner />;
-
-  // Read live store value — avoids React snapshot lag on first render
-  const currentUser = useAuthStore.getState().user ?? user;
+  if (!mounted) return <Spinner />;
   if (!currentUser) return <LoginPrompt />;
-
-  // Wrong role: effect will hard-navigate, show spinner in the meantime
   if (currentUser.role === "kitchen") return <Spinner />;
   if (currentUser.role === "supervisor" && !pathname.startsWith("/manager/shifts")) return <Spinner />;
 
