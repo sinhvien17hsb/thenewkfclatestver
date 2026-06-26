@@ -1,11 +1,17 @@
-import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { config } from "dotenv";
+import { resolve } from "path";
+config({ path: resolve(process.cwd(), ".env") });
+config({ path: resolve(process.cwd(), ".env.local"), override: true });
 
-const url = process.env.DATABASE_URL ?? "file:./dev.db";
-const adapter = new PrismaBetterSqlite3({ url });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const prisma = new PrismaClient({ adapter } as any);
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+
+if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0]);
 
 const CDN = "https://static.kfcvietnam.com.vn/images/items/lg";
 const v = "?v=4lp884";
@@ -38,69 +44,38 @@ const menuItems = [
   { name: "3 Miếng Gà Xốt Mắm Tỏi",          description: "Gà rán giòn tan, quyện xốt mắm tỏi đậm đà, cay cay, ngọt ngọt",                                    category: "mon_moi",    price: 116000, imageEmoji: "🍗", imageUrl: img("3GXMT.jpg"),              popular: false, prepTime: 10 },
   { name: "Cơm Gà Xốt Mắm Tỏi",              description: "Gà rán giòn tan xốt mắm tỏi đậm đà ăn kèm cơm nóng dẻo",                                           category: "mon_moi",    price: 52000,  imageEmoji: "🍚", imageUrl: img("COM-GXMT.jpg"),           popular: false, prepTime: 8  },
 
-  // ─── COMBO 1 NGƯỜI ───
-  { name: "Combo 1 Miếng Gà",                  description: "1 Miếng gà + 1 Khoai tây chiên (Vừa) + 1 Ly Pepsi",                                                 category: "combo_1",    price: 59000,  imageEmoji: "🎁", imageUrl: img("D-CHICKEN-1.jpg"),       popular: true,  prepTime: 8  },
-  { name: "Combo Một Mình Chill",               description: "1 Miếng gà + 1 Mì ý xúc xích + 1 Khoai tây (Vừa) + 1 Ly Pepsi",                                   category: "combo_1",    price: 91000,  imageEmoji: "🎁", imageUrl: img("EC.CBO-1COB-Pasta.jpg"), popular: false, prepTime: 10 },
-  { name: "Combo 2 Miếng Gà",                  description: "2 Miếng gà + 1 Khoai tây chiên (vừa) + 1 Ly Pepsi",                                                 category: "combo_1",    price: 91000,  imageEmoji: "🎁", imageUrl: img("D-CHICKEN-2.jpg"),       popular: true,  prepTime: 10 },
-  { name: "Combo Mỳ Ý Solo",                   description: "1 Mì ý gà rán + 1 Ly Pepsi",                                                                         category: "combo_1",    price: 71000,  imageEmoji: "🎁", imageUrl: img("EC.CBO-1-Pasta-COB.jpg"),popular: false, prepTime: 8  },
-  { name: "Combo Mì Ý & Gà Tenders",          description: "1 Mì ý xúc xích + 3 Tender + 1 Ly Pepsi",                                                            category: "combo_1",    price: 79000,  imageEmoji: "🎁", imageUrl: img("EC.CBO-Pasta-Tender.jpg"),popular: false, prepTime: 10 },
-  { name: "Combo Cơm Gà Rán Solo",             description: "1 Cơm Gà rán + 1 Ly Pepsi",                                                                          category: "combo_1",    price: 56000,  imageEmoji: "🎁", imageUrl: img("EC.CBO-RICE-COB.jpg"),   popular: true,  prepTime: 8  },
-  { name: "Combo Cơm Gà Rán & Súp",           description: "1 Cơm Gà rán + 1 Súp rong biển + 1 Ly Pepsi",                                                        category: "combo_1",    price: 69000,  imageEmoji: "🎁", imageUrl: img("EC.CBO-Rice-Soup.jpg"),  popular: false, prepTime: 8  },
-  { name: "Combo Cơm Gà Quay Solo",            description: "1 Cơm Gà quay + 1 Ly Pepsi",                                                                         category: "combo_1",    price: 59000,  imageEmoji: "🎁", imageUrl: img("EC.CBO-RICE-FLAVA.jpg"), popular: false, prepTime: 8  },
-  { name: "Combo Cơm Gà Nanban Solo",          description: "1 Cơm Gà nanban + 1 Ly Pepsi",                                                                       category: "combo_1",    price: 46000,  imageEmoji: "🎁", imageUrl: img("EC.CBO-RICE-NANBAN.jpg"),popular: false, prepTime: 8  },
-  { name: "Combo Burger Zinger",               description: "1 Burger zinger + 1 Khoai tây chiên (vừa) + 1 Ly Pepsi",                                            category: "combo_1",    price: 79000,  imageEmoji: "🎁", imageUrl: img("D-B.ZINGER-FF.jpg"),     popular: true,  prepTime: 8  },
-  { name: "Combo Burger Tôm",                  description: "1 Burger tôm + 1 Khoai tây chiên (vừa) + 1 Ly Pepsi",                                               category: "combo_1",    price: 69000,  imageEmoji: "🎁", imageUrl: img("EC.CBO-B.Shrimp.jpg"),   popular: false, prepTime: 8  },
-  { name: "Combo Burger Gà Quay",              description: "1 Burger gà quay + 1 Khoai tây chiên (vừa) + 1 Ly Pepsi",                                           category: "combo_1",    price: 79000,  imageEmoji: "🎁", imageUrl: img("DB-ROASTED-FF.jpg"),     popular: false, prepTime: 8  },
+  // ─── GÀ RÁN ───
+  { name: "1 Miếng Gà Rán",                   description: "1 Miếng Gà Rán giòn thơm",                                                                           category: "ga_ran",     price: 35000,  imageEmoji: "🍗", imageUrl: img("1-COB.jpg"),              popular: true,  prepTime: 7  },
+  { name: "2 Miếng Gà Rán",                   description: "2 Miếng Gà Rán giòn thơm",                                                                           category: "ga_ran",     price: 65000,  imageEmoji: "🍗", imageUrl: img("2-COB.jpg"),              popular: true,  prepTime: 8  },
+  { name: "3 Miếng Gà Rán",                   description: "3 Miếng Gà Rán giòn thơm",                                                                           category: "ga_ran",     price: 95000,  imageEmoji: "🍗", imageUrl: img("3-COB.jpg"),              popular: false, prepTime: 10 },
+  { name: "6 Miếng Gà Rán",                   description: "6 Miếng Gà Rán giòn thơm",                                                                           category: "ga_ran",     price: 185000, imageEmoji: "🍗", imageUrl: img("6-COB.jpg"),              popular: false, prepTime: 14 },
+  { name: "9 Miếng Gà Rán",                   description: "9 Miếng Gà Rán giòn thơm",                                                                           category: "ga_ran",     price: 275000, imageEmoji: "🍗", imageUrl: img("9-COB.jpg"),              popular: false, prepTime: 18 },
+  { name: "Gà Tenders (3 Miếng)",             description: "3 Miếng Gà Tenders",                                                                                  category: "ga_ran",     price: 55000,  imageEmoji: "🍗", imageUrl: img("Tender-3.jpg"),           popular: true,  prepTime: 7  },
+  { name: "Gà Tenders (5 Miếng)",             description: "5 Miếng Gà Tenders",                                                                                  category: "ga_ran",     price: 85000,  imageEmoji: "🍗", imageUrl: img("Tender-5.jpg"),           popular: false, prepTime: 9  },
+  { name: "Gà Popcorn (S)",                   description: "Gà Popcorn cỡ nhỏ",                                                                                   category: "ga_ran",     price: 35000,  imageEmoji: "🍿", imageUrl: img("PC-(S).jpg"),             popular: true,  prepTime: 5  },
+  { name: "Gà Popcorn (R)",                   description: "Gà Popcorn cỡ vừa",                                                                                   category: "ga_ran",     price: 48000,  imageEmoji: "🍿", imageUrl: img("PC-(R).jpg"),             popular: false, prepTime: 5  },
+  { name: "Gà Nuggets (6 Miếng)",             description: "6 Miếng Gà Nuggets giòn rụm",                                                                         category: "ga_ran",     price: 43000,  imageEmoji: "🍗", imageUrl: img("Nug-6.jpg"),              popular: false, prepTime: 5  },
+  { name: "Gà Nuggets (9 Miếng)",             description: "9 Miếng Gà Nuggets giòn rụm",                                                                         category: "ga_ran",     price: 55000,  imageEmoji: "🍗", imageUrl: img("Nug-9.jpg"),              popular: true,  prepTime: 6  },
 
-  // ─── COMBO 2 NGƯỜI ───
-  { name: "Combo Nhóm 2 No Nê",               description: "4 Miếng gà + 1 Khoai tây chiên (vừa) + 2 Ly Pepsi",                                                  category: "combo_2",    price: 169000, imageEmoji: "👫", imageUrl: img("D.BUCKET4_FF.jpg"),      popular: true,  prepTime: 12 },
-  { name: "Combo Nhóm 2 Vui Vẻ",             description: "3 Miếng gà rán + 1 Mì ý gà viên + 1 Khoai tây (vừa) + 2 Ly Pepsi",                                   category: "combo_2",    price: 159000, imageEmoji: "👫", imageUrl: img("EC.Bucket-3-COB.jpg"),   popular: false, prepTime: 12 },
-  { name: "Combo Hai Mình Chill",             description: "2 Mì ý xúc xích + 2 Miếng gà rán + 1 Khoai tây (vừa) + 2 Ly Pepsi",                                 category: "combo_2",    price: 146000, imageEmoji: "👫", imageUrl: img("EC.CBO-2-Pasta-COB.jpg"),popular: false, prepTime: 12 },
-  { name: "Combo Burger Gà Yo & Gà Rán",     description: "1 Burger gà yo + 2 Miếng gà rán + 1 Khoai tây (vừa) + 2 Ly Pepsi (vừa)",                            category: "combo_2",    price: 129000, imageEmoji: "👫", imageUrl: img("EC.CBO-B.GaYo-COB_.jpg"),popular: false, prepTime: 12 },
+  // ─── CƠM ───
+  { name: "Cơm Gà Rán",                       description: "1 Miếng Gà Rán + Cơm trắng",                                                                          category: "com",        price: 49000,  imageEmoji: "🍚", imageUrl: img("COM-COB.jpg"),            popular: true,  prepTime: 8  },
+  { name: "Cơm Gà Tenders",                   description: "2 Miếng Gà Tenders + Cơm trắng",                                                                      category: "com",        price: 52000,  imageEmoji: "🍚", imageUrl: img("COM-TEN.jpg"),            popular: false, prepTime: 8  },
+  { name: "Cơm Gà Popcorn",                   description: "Gà Popcorn (R) + Cơm trắng",                                                                          category: "com",        price: 52000,  imageEmoji: "🍚", imageUrl: img("COM-POP.jpg"),            popular: false, prepTime: 7  },
 
-  // ─── COMBO NHÓM ───
-  { name: "Combo Nhóm 3 Tụ Tập",              description: "5 Miếng gà + 1 Gà viên (Vừa) + 3 Ly Pepsi",                                                          category: "combo_nhom", price: 239000, imageEmoji: "👥", imageUrl: img("EC.Bucket-5-COB.jpg"),   popular: false, prepTime: 15 },
-  { name: "Combo Gà Chill 199k",              description: "3 Miếng gà rán + 2 Mì ý xúc xích + 1 Khoai tây (vừa) + 3 Ly Pepsi",                                 category: "combo_nhom", price: 199000, imageEmoji: "👥", imageUrl: img("EC.CBO-3COB-199K.jpg"),  popular: true,  prepTime: 15 },
-  { name: "Combo Gà No 279k",                 description: "4 Miếng gà rán + 2 Burger zinger + 1 Khoai tây (vừa) + 4 Ly Pepsi",                                  category: "combo_nhom", price: 279000, imageEmoji: "👥", imageUrl: img("EC.CBO-4COB-279K.jpg"),  popular: false, prepTime: 18 },
+  // ─── BURGER & SANDWICH ───
+  { name: "Burger Gà Giòn",                   description: "Burger với miếng gà giòn, rau xà lách và sốt đặc biệt",                                              category: "burger",     price: 49000,  imageEmoji: "🍔", imageUrl: img("BUR-CRI.jpg"),            popular: true,  prepTime: 6  },
+  { name: "Burger Gà Nướng",                  description: "Burger với miếng gà nướng thơm lừng",                                                                 category: "burger",     price: 49000,  imageEmoji: "🍔", imageUrl: img("BUR-GRI.jpg"),            popular: false, prepTime: 6  },
+  { name: "Burger Zinger",                     description: "Burger Gà Zinger cay nồng đặc trưng",                                                                 category: "burger",     price: 52000,  imageEmoji: "🍔", imageUrl: img("BUR-ZIN.jpg"),            popular: true,  prepTime: 7  },
+  { name: "Twister Gà Giòn",                  description: "Bánh mì cuộn gà giòn + rau tươi + sốt",                                                               category: "burger",     price: 52000,  imageEmoji: "🌯", imageUrl: img("TWI-CRI.jpg"),            popular: false, prepTime: 7  },
+  { name: "Twister Gà Nướng",                 description: "Bánh mì cuộn gà nướng + rau tươi + sốt",                                                              category: "burger",     price: 52000,  imageEmoji: "🌯", imageUrl: img("TWI-GRI.jpg"),            popular: false, prepTime: 7  },
 
-  // ─── GÀ RÁN – GÀ QUAY ───
-  { name: "1 Miếng Gà Rán",                   description: "1 Miếng Gà Rán + 1 Gói tương (cà/ớt)",                                                               category: "ga_ran",     price: 37000,  imageEmoji: "🍗", imageUrl: img("1-Fried-Chicken.jpg"),   popular: true,  prepTime: 6  },
-  { name: "2 Miếng Gà Rán",                   description: "2 Miếng Gà Rán + 2 Gói tương (cà/ớt)",                                                               category: "ga_ran",     price: 74000,  imageEmoji: "🍗", imageUrl: img("2-Fried-Chicken.jpg"),   popular: true,  prepTime: 7  },
-  { name: "3 Miếng Gà Rán",                   description: "3 Miếng Gà Rán + 3 Gói tương (cà/ớt)",                                                               category: "ga_ran",     price: 105000, imageEmoji: "🍗", imageUrl: img("3-Fried-Chicken.jpg"),   popular: false, prepTime: 8  },
-  { name: "6 Miếng Gà Rán",                   description: "6 Miếng Gà Rán + 6 Gói tương (cà/ớt)",                                                               category: "ga_ran",     price: 210000, imageEmoji: "🍗", imageUrl: img("6-Fried-Chicken-new.jpg"),popular: false, prepTime: 12 },
-  { name: "1 Miếng Phi-lê Gà Quay",           description: "1 Miếng Phi-lê Gà Quay",                                                                              category: "ga_ran",     price: 43000,  imageEmoji: "🍗", imageUrl: img("MOD-PHI-LE-GA-QUAY.jpg"),popular: false, prepTime: 7  },
-  { name: "3 Miếng Gà Rán Tender",            description: "3 Miếng Gà Rán Tender + 1 Gói tương (cà/ớt)",                                                        category: "ga_ran",     price: 42000,  imageEmoji: "🍗", imageUrl: img("TENDERS-3.jpg"),          popular: true,  prepTime: 6  },
-  { name: "5 Miếng Gà Rán Tender",            description: "5 Miếng Gà Rán Tender + 2 Gói tương (cà/ớt)",                                                        category: "ga_ran",     price: 68000,  imageEmoji: "🍗", imageUrl: img("TENDERS-5.jpg"),          popular: false, prepTime: 8  },
-
-  // ─── BURGER – CƠM – MÌ Ý ───
-  { name: "Burger Gà Yo",                     description: "1 Burger Gà Yo (cay) / 1 Burger Gà Yo (không cay)",                                                   category: "burger_com", price: 30000,  imageEmoji: "🍔", imageUrl: img("BURGER-GAYO.jpg"),       popular: true,  prepTime: 5  },
-  { name: "Burger Phi-lê Gà Quay",            description: "1 Burger Phi-lê Gà Quay + 1 Gói tương (cà/ớt)",                                                      category: "burger_com", price: 56000,  imageEmoji: "🍔", imageUrl: img("Burger-Flava.jpg"),      popular: false, prepTime: 6  },
-  { name: "Burger Tôm",                        description: "1 Burger Tôm + 1 Gói tương (cà/ớt)",                                                                  category: "burger_com", price: 45000,  imageEmoji: "🍔", imageUrl: img("Burger-Shrimp.jpg"),     popular: false, prepTime: 5  },
-  { name: "Burger Gà Zinger",                 description: "1 Burger Gà Zinger + 1 Gói tương (cà/ớt)",                                                            category: "burger_com", price: 56000,  imageEmoji: "🍔", imageUrl: img("Burger-Zinger.jpg"),     popular: true,  prepTime: 6  },
-  { name: "Mì Ý Xúc Xích Gà",               description: "1 Mì Ý Xúc Xích Gà",                                                                                   category: "burger_com", price: 38000,  imageEmoji: "🍝", imageUrl: img("Sausage-Pasta.jpg"),     popular: false, prepTime: 6  },
-  { name: "Mì Ý Gà Viên",                    description: "1 Mì Ý Gà Viên",                                                                                       category: "burger_com", price: 43000,  imageEmoji: "🍝", imageUrl: img("Sausage-Pasta-Popcorn.jpg"),popular: false, prepTime: 6 },
-  { name: "Mì Ý Gà Rán",                     description: "1 Mì Ý Gà Rán + 1 Gói tương (cà/ớt)",                                                                 category: "burger_com", price: 68000,  imageEmoji: "🍝", imageUrl: img("Sausage-Pasta-COB.jpg"), popular: false, prepTime: 7  },
-  { name: "Cơm Gà Rán",                       description: "1 Cơm Gà Rán + 1 Gói tương (cà/ớt)",                                                                  category: "burger_com", price: 49000,  imageEmoji: "🍚", imageUrl: img("Rice-OR.jpg"),            popular: true,  prepTime: 7  },
-  { name: "Cơm Gà Viên Nanban",               description: "1 Cơm Gà Viên Nanban + 1 Gói tương (cà/ớt)",                                                          category: "burger_com", price: 40000,  imageEmoji: "🍚", imageUrl: img("NANBAN.jpg"),             popular: false, prepTime: 7  },
-  { name: "Cơm Phi-lê Gà Quay",               description: "1 Cơm Phi-lê Gà Quay + 1 Gói tương (cà/ớt)",                                                          category: "burger_com", price: 54000,  imageEmoji: "🍚", imageUrl: img("Rice-Flava.jpg"),         popular: false, prepTime: 7  },
-  { name: "Cơm Trắng",                         description: "Cơm trắng",                                                                                            category: "burger_com", price: 12000,  imageEmoji: "🍚", imageUrl: img("Rice.jpg"),               popular: false, prepTime: 2  },
-
-  // ─── THỨC ĂN NHẸ ───
-  { name: "Gà Viên Popcorn (Lớn)",            description: "Gà Viên Popcorn (Lớn) + 2 Gói tương (cà/ớt)",                                                         category: "mon_phu",    price: 67000,  imageEmoji: "🍿", imageUrl: img("POP-L.jpg"),              popular: true,  prepTime: 6  },
-  { name: "Gà Viên Popcorn (Vừa)",            description: "Gà Viên Popcorn (Vừa) + 1 Gói tương (cà/ớt)",                                                         category: "mon_phu",    price: 40000,  imageEmoji: "🍿", imageUrl: img("POP-R.jpg"),              popular: false, prepTime: 5  },
-  { name: "4 Phô Mai Viên",                    description: "4 Phô Mai Viên chiên giòn tan chảy",                                                                   category: "mon_phu",    price: 38000,  imageEmoji: "🧀", imageUrl: img("4-Chewy-Cheese.jpg"),     popular: false, prepTime: 5  },
-  { name: "6 Phô Mai Viên",                    description: "6 Phô Mai Viên chiên giòn tan chảy",                                                                   category: "mon_phu",    price: 53000,  imageEmoji: "🧀", imageUrl: img("6-Chewy-Cheese.jpg"),     popular: false, prepTime: 5  },
-  { name: "Salad Xốt Mè Rang",                description: "1 Salad Xốt Mè Rang tươi ngon",                                                                        category: "mon_phu",    price: 22000,  imageEmoji: "🥗", imageUrl: img("SALAD-XOT-ME-RANG.jpg"), popular: false, prepTime: 3  },
-  { name: "Salad Hạt Gà Viên",                description: "1 Salad Hạt Gà Viên",                                                                                  category: "mon_phu",    price: 37000,  imageEmoji: "🥗", imageUrl: img("SALAD-HAT-GA-VIEN.jpg"), popular: false, prepTime: 3  },
-  { name: "Bắp Cải Trộn (Đại)",              description: "1 Bắp Cải Trộn cỡ đại",                                                                                category: "mon_phu",    price: 32000,  imageEmoji: "🥗", imageUrl: img("CL-(J)-new.jpg"),         popular: false, prepTime: 2  },
-  { name: "Bắp Cải Trộn (Lớn)",              description: "1 Bắp Cải Trộn cỡ lớn",                                                                                category: "mon_phu",    price: 23000,  imageEmoji: "🥗", imageUrl: img("CL-(L)-new.jpg"),         popular: false, prepTime: 2  },
-  { name: "Bắp Cải Trộn (Vừa)",              description: "1 Bắp Cải Trộn cỡ vừa",                                                                                category: "mon_phu",    price: 13000,  imageEmoji: "🥗", imageUrl: img("CL-(R)-new.jpg"),         popular: false, prepTime: 2  },
-  { name: "Khoai Tây Chiên (Đại)",           description: "Khoai Tây Chiên (Đại) + 2 Gói tương (cà/ớt)",                                                          category: "mon_phu",    price: 40000,  imageEmoji: "🍟", imageUrl: img("FF-J.jpg"),               popular: false, prepTime: 5  },
-  { name: "Khoai Tây Chiên (Lớn)",           description: "Khoai Tây Chiên (Lớn) + 1 Gói tương (cà/ớt)",                                                          category: "mon_phu",    price: 30000,  imageEmoji: "🍟", imageUrl: img("FF-L.jpg"),               popular: true,  prepTime: 4  },
-  { name: "Khoai Tây Chiên (Vừa)",           description: "Khoai Tây Chiên (Vừa) + 1 Gói tương (cà/ớt)",                                                          category: "mon_phu",    price: 20000,  imageEmoji: "🍟", imageUrl: img("FF-R.jpg"),               popular: true,  prepTime: 4  },
-  { name: "Khoai Tây Nghiền (Đại)",          description: "Khoai Tây Nghiền cỡ đại",                                                                               category: "mon_phu",    price: 32000,  imageEmoji: "🥔", imageUrl: img("MP-(J)-new.jpg"),         popular: false, prepTime: 3  },
-  { name: "Khoai Tây Nghiền (Lớn)",          description: "Khoai Tây Nghiền cỡ lớn",                                                                               category: "mon_phu",    price: 23000,  imageEmoji: "🥔", imageUrl: img("MP-(L)-new.jpg"),         popular: false, prepTime: 3  },
-  { name: "Khoai Tây Nghiền (Vừa)",          description: "Khoai Tây Nghiền cỡ vừa",                                                                               category: "mon_phu",    price: 13000,  imageEmoji: "🥔", imageUrl: img("MP-(R)-new.jpg"),         popular: false, prepTime: 3  },
+  // ─── MÓN PHỤ ───
+  { name: "Khoai Tây Chiên (Đại)",            description: "Khoai Tây Chiên (Đại) + 1 Gói tương (cà/ớt)",                                                          category: "mon_phu",    price: 32000,  imageEmoji: "🍟", imageUrl: img("FF-J.jpg"),               popular: true,  prepTime: 4  },
+  { name: "Khoai Tây Chiên (Lớn)",            description: "Khoai Tây Chiên (Lớn) + 1 Gói tương (cà/ớt)",                                                          category: "mon_phu",    price: 25000,  imageEmoji: "🍟", imageUrl: img("FF-L.jpg"),               popular: false, prepTime: 4  },
+  { name: "Khoai Tây Chiên (Vừa)",            description: "Khoai Tây Chiên (Vừa) + 1 Gói tương (cà/ớt)",                                                          category: "mon_phu",    price: 20000,  imageEmoji: "🍟", imageUrl: img("FF-R.jpg"),               popular: true,  prepTime: 4  },
+  { name: "Khoai Tây Nghiền (Đại)",           description: "Khoai Tây Nghiền cỡ đại",                                                                               category: "mon_phu",    price: 32000,  imageEmoji: "🥔", imageUrl: img("MP-(J)-new.jpg"),         popular: false, prepTime: 3  },
+  { name: "Khoai Tây Nghiền (Lớn)",           description: "Khoai Tây Nghiền cỡ lớn",                                                                               category: "mon_phu",    price: 23000,  imageEmoji: "🥔", imageUrl: img("MP-(L)-new.jpg"),         popular: false, prepTime: 3  },
+  { name: "Khoai Tây Nghiền (Vừa)",           description: "Khoai Tây Nghiền cỡ vừa",                                                                               category: "mon_phu",    price: 13000,  imageEmoji: "🥔", imageUrl: img("MP-(R)-new.jpg"),         popular: false, prepTime: 3  },
   { name: "Súp Rong Biển",                    description: "Súp Rong Biển thơm ngon",                                                                               category: "mon_phu",    price: 20000,  imageEmoji: "🍲", imageUrl: img("Soup-Rong-Bien.jpg"),     popular: false, prepTime: 3  },
 
   // ─── ĐỒ UỐNG & TRÁNG MIỆNG ───
@@ -123,110 +98,153 @@ const menuItems = [
   { name: "Pepsi Không Đường (Lon)",         description: "1 Pepsi Không Đường (Lon)",                                                                              category: "do_uong",    price: 20000,  imageEmoji: "🥤", imageUrl: img("Pepsi-Zero-Can-ALC.jpg"), popular: false, prepTime: 1  },
 ];
 
+// ─── EMPLOYEES ───
+const employees = [
+  // Kitchen staff
+  { employeeId: "kitchen01", name: "Trần Văn Bếp",    role: "KITCHEN", branch: "KFC Vincom Bà Triệu", password: "123456" },
+  { employeeId: "kitchen02", name: "Nguyễn Thị Lan",  role: "KITCHEN", branch: "KFC Vincom Bà Triệu", password: "123456" },
+  { employeeId: "kitchen03", name: "Phạm Văn Hùng",   role: "KITCHEN", branch: "KFC Vincom Bà Triệu", password: "123456" },
+  { employeeId: "kitchen04", name: "Lê Thị Hoa",      role: "KITCHEN", branch: "KFC Vincom Bà Triệu", password: "123456" },
+  // Cashier / Supervisor
+  { employeeId: "supervisor01", name: "Nguyễn Thị Hương", role: "CASHIER", branch: "KFC Vincom Bà Triệu", password: "123456" },
+  { employeeId: "supervisor02", name: "Vũ Thị Phương",    role: "CASHIER", branch: "KFC Vincom Bà Triệu", password: "123456" },
+  // Manager
+  { employeeId: "manager01", name: "Lê Minh Tuấn",   role: "MANAGER", branch: "KFC Vincom Bà Triệu", password: "123456" },
+];
+
 async function main() {
-  // Hide old items that aren't part of the new menu
+  console.log("🚀 Seeding Neon PostgreSQL database...\n");
+
+  // ─── MENU ITEMS ───
   const newNames = new Set(menuItems.map((i) => i.name));
   const existing = await prisma.menuItem.findMany({ select: { id: true, name: true } });
-  const toHide = existing.filter((e: { id: string; name: string }) => !newNames.has(e.name));
+  const toHide = existing.filter((e) => !newNames.has(e.name));
   if (toHide.length > 0) {
     await prisma.menuItem.updateMany({
-      where: { id: { in: toHide.map((e: { id: string }) => e.id) } },
+      where: { id: { in: toHide.map((e) => e.id) } },
       data: { available: false },
     });
     console.log(`✓ Hid ${toHide.length} old menu items`);
   }
 
-  // Upsert all new items
-  const existingNames = new Map(existing.map((e: { id: string; name: string }) => [e.name, e.id]));
-  let created = 0;
-  let updated = 0;
+  const existingNames = new Map(existing.map((e) => [e.name, e.id]));
+  let created = 0, updated = 0;
   for (const item of menuItems) {
     const existingId = existingNames.get(item.name);
     if (existingId) {
-      await prisma.menuItem.update({
-        where: { id: existingId },
-        data: { ...item, available: true },
-      });
+      await prisma.menuItem.update({ where: { id: existingId }, data: { ...item, available: true } });
       updated++;
     } else {
       await prisma.menuItem.create({ data: { ...item, available: true } });
       created++;
     }
   }
-  console.log(`✓ Created ${created} new items, updated ${updated} existing items`);
-  console.log(`✓ Total menu: ${menuItems.length} items`);
+  console.log(`✓ Menu: ${created} created, ${updated} updated (${menuItems.length} total)`);
 
-  // ─── SEED DEMO ORDERS ───
-  // Wipe & re-seed every build so timestamps stay fresh (0–25 min ago)
-  await prisma.orderStatusHistory.deleteMany({ where: { order: { orderNumber: { startsWith: "DEMO" } } } });
-  await prisma.orderItem.deleteMany({ where: { order: { orderNumber: { startsWith: "DEMO" } } } });
-  await prisma.order.deleteMany({ where: { orderNumber: { startsWith: "DEMO" } } });
+  // ─── EMPLOYEES ───
+  for (const emp of employees) {
+    const hashed = await bcrypt.hash(emp.password, 10);
+    await prisma.employee.upsert({
+      where: { employeeId: emp.employeeId },
+      update: { name: emp.name, role: emp.role, branch: emp.branch, password: hashed, isActive: true },
+      create: { employeeId: emp.employeeId, name: emp.name, role: emp.role, branch: emp.branch, password: hashed },
+    });
+  }
+  console.log(`✓ Employees: ${employees.length} upserted`);
+
+  // ─── ORDERS ───
+  // Clear existing seeded orders then re-seed with fresh timestamps
+  await prisma.orderStatusHistory.deleteMany({ where: { order: { orderNumber: { startsWith: "KFC-SEED" } } } });
+  await prisma.orderItem.deleteMany({ where: { order: { orderNumber: { startsWith: "KFC-SEED" } } } });
+  await prisma.order.deleteMany({ where: { orderNumber: { startsWith: "KFC-SEED" } } });
 
   const allItems = await prisma.menuItem.findMany({ select: { id: true, name: true, price: true } });
-  const byName = (name: string) => allItems.find((m: { id: string; name: string; price: number }) => m.name === name)!;
+  const mi = (name: string) => allItems.find((m) => m.name === name)!;
   const minsAgo = (m: number) => new Date(Date.now() - m * 60 * 1000);
 
-  const demoOrders: Array<{
+  type SeedOrder = {
     orderNumber: string; tableNumber: string; customerName: string;
     status: string; minutesAgo: number; estimatedTime: number;
     items: Array<{ name: string; qty: number }>;
-  }> = [
+  };
+
+  const seedOrders: SeedOrder[] = [
+    // queued (just placed)
     {
-      orderNumber: "DEMO0101", tableNumber: "3", customerName: "Nguyễn Văn An",
+      orderNumber: "KFC-SEED-001", tableNumber: "3", customerName: "Nguyễn Văn An",
       status: "queued", minutesAgo: 2, estimatedTime: 15,
       items: [{ name: "Combo 99K – 4 Miếng Gà", qty: 1 }, { name: "Pepsi (Vừa)", qty: 2 }],
     },
     {
-      orderNumber: "DEMO0102", tableNumber: "7", customerName: "Trần Thị Bình",
-      status: "queued", minutesAgo: 5, estimatedTime: 12,
+      orderNumber: "KFC-SEED-002", tableNumber: "7", customerName: "Trần Thị Bình",
+      status: "queued", minutesAgo: 4, estimatedTime: 12,
       items: [{ name: "Combo Tiêu Tung Chill", qty: 1 }, { name: "Khoai Tây Chiên (Vừa)", qty: 1 }],
     },
     {
-      orderNumber: "DEMO0103", tableNumber: "12", customerName: "Lê Minh Châu",
-      status: "queued", minutesAgo: 7, estimatedTime: 18,
+      orderNumber: "KFC-SEED-003", tableNumber: "12", customerName: "Lê Minh Châu",
+      status: "queued", minutesAgo: 6, estimatedTime: 18,
       items: [{ name: "Combo Cùng Xơi", qty: 1 }, { name: "7Up (Vừa)", qty: 2 }, { name: "1 Bánh Trứng", qty: 2 }],
     },
+    // preparing
     {
-      orderNumber: "DEMO0201", tableNumber: "2", customerName: "Phạm Thị Dung",
+      orderNumber: "KFC-SEED-004", tableNumber: "2", customerName: "Phạm Thị Dung",
       status: "preparing", minutesAgo: 10, estimatedTime: 15,
       items: [{ name: "Combo Siêu Nuggets", qty: 1 }, { name: "Khoai Tây Chiên (Đại)", qty: 1 }, { name: "Pepsi Không Đường (Vừa)", qty: 1 }],
     },
     {
-      orderNumber: "DEMO0202", tableNumber: "9", customerName: "Hoàng Văn Em",
-      status: "preparing", minutesAgo: 14, estimatedTime: 20,
+      orderNumber: "KFC-SEED-005", tableNumber: "9", customerName: "Hoàng Văn Em",
+      status: "preparing", minutesAgo: 13, estimatedTime: 20,
       items: [{ name: "Combo Gà Rôm Rả 245k", qty: 1 }, { name: "Lipton (Vừa)", qty: 3 }],
     },
     {
-      orderNumber: "DEMO0203", tableNumber: "1", customerName: "Vũ Thị Phương",
+      orderNumber: "KFC-SEED-006", tableNumber: "1", customerName: "Vũ Thị Phương",
       status: "preparing", minutesAgo: 16, estimatedTime: 18,
       items: [{ name: "Combo Chanh Sang Chảnh", qty: 1 }, { name: "Súp Rong Biển", qty: 2 }],
     },
+    // quality_check
     {
-      orderNumber: "DEMO0301", tableNumber: "6", customerName: "Đặng Văn Giang",
-      status: "quality_check", minutesAgo: 20, estimatedTime: 15,
+      orderNumber: "KFC-SEED-007", tableNumber: "6", customerName: "Đặng Văn Giang",
+      status: "quality_check", minutesAgo: 19, estimatedTime: 15,
       items: [{ name: "Combo Cùng Vui", qty: 1 }, { name: "Khoai Tây Nghiền (Lớn)", qty: 2 }, { name: "Pepsi (Đại)", qty: 2 }],
     },
     {
-      orderNumber: "DEMO0302", tableNumber: "4", customerName: "Bùi Thị Hoa",
-      status: "quality_check", minutesAgo: 22, estimatedTime: 20,
+      orderNumber: "KFC-SEED-008", tableNumber: "4", customerName: "Bùi Thị Hoa",
+      status: "quality_check", minutesAgo: 21, estimatedTime: 20,
       items: [{ name: "Combo Cùng Tiệc", qty: 1 }, { name: "4 Bánh Trứng", qty: 1 }],
     },
+    // ready
     {
-      orderNumber: "DEMO0401", tableNumber: "11", customerName: "Ngô Văn Inh",
+      orderNumber: "KFC-SEED-009", tableNumber: "11", customerName: "Ngô Văn Inh",
       status: "ready", minutesAgo: 23, estimatedTime: 15,
       items: [{ name: "Combo Gà & Nuggets", qty: 2 }, { name: "7Up (Đại)", qty: 2 }],
     },
     {
-      orderNumber: "DEMO0402", tableNumber: "8", customerName: "Đinh Thị Kim",
+      orderNumber: "KFC-SEED-010", tableNumber: "8", customerName: "Đinh Thị Kim",
       status: "ready", minutesAgo: 25, estimatedTime: 18,
       items: [{ name: "Combo Cùng Quẩy", qty: 1 }, { name: "Pepsi Không Đường (Đại)", qty: 2 }, { name: "1 Bánh Trứng", qty: 3 }],
     },
+    // completed (history)
+    {
+      orderNumber: "KFC-SEED-011", tableNumber: "5", customerName: "Lý Văn Long",
+      status: "completed", minutesAgo: 40, estimatedTime: 15,
+      items: [{ name: "Burger Zinger", qty: 2 }, { name: "Khoai Tây Chiên (Lớn)", qty: 2 }, { name: "Pepsi (Vừa)", qty: 2 }],
+    },
+    {
+      orderNumber: "KFC-SEED-012", tableNumber: "10", customerName: "Đỗ Thị Mai",
+      status: "completed", minutesAgo: 55, estimatedTime: 12,
+      items: [{ name: "Cơm Gà Rán", qty: 2 }, { name: "Súp Rong Biển", qty: 2 }, { name: "Lipton (Tiêu Chuẩn)", qty: 2 }],
+    },
+    {
+      orderNumber: "KFC-SEED-013", tableNumber: "15", customerName: "Tống Văn Nam",
+      status: "completed", minutesAgo: 75, estimatedTime: 20,
+      items: [{ name: "Combo Cùng Tiệc", qty: 1 }, { name: "Khoai Lắc Phô Mai (L)", qty: 2 }, { name: "7Up (Lon)", qty: 4 }],
+    },
   ];
 
-  for (const o of demoOrders) {
+  for (const o of seedOrders) {
     const orderItems = o.items.map((i) => {
-      const mi = byName(i.name);
-      return { menuItemId: mi.id, quantity: i.qty, price: mi.price, notes: null };
+      const item = mi(i.name);
+      return { menuItemId: item.id, quantity: i.qty, price: item.price, notes: null };
     });
     const total = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
     await prisma.order.create({
@@ -243,7 +261,36 @@ async function main() {
       },
     });
   }
-  console.log(`✓ Seeded ${demoOrders.length} demo orders (statuses: queued×3, preparing×3, quality_check×2, ready×2)`);
+  console.log(`✓ Orders: 10 active + 3 completed seeded`);
+
+  // ─── INVENTORY ───
+  const inventoryItems = [
+    { name: "Gà tươi nguyên con",       unit: "kg",    currentStock: 45,  minimumStock: 20 },
+    { name: "Bột chiên gà KFC",          unit: "kg",    currentStock: 30,  minimumStock: 15 },
+    { name: "Dầu chiên",                 unit: "lít",   currentStock: 60,  minimumStock: 30 },
+    { name: "Khoai tây đông lạnh",       unit: "kg",    currentStock: 80,  minimumStock: 40 },
+    { name: "Bánh mì burger",            unit: "ổ",     currentStock: 120, minimumStock: 50 },
+    { name: "Rau xà lách",               unit: "kg",    currentStock: 8,   minimumStock: 5  },
+    { name: "Cà chua",                   unit: "kg",    currentStock: 6,   minimumStock: 4  },
+    { name: "Sốt mayonnaise",            unit: "kg",    currentStock: 12,  minimumStock: 5  },
+    { name: "Pepsi (thùng)",             unit: "thùng", currentStock: 15,  minimumStock: 8  },
+    { name: "7Up (thùng)",               unit: "thùng", currentStock: 10,  minimumStock: 5  },
+    { name: "Cơm gạo",                   unit: "kg",    currentStock: 50,  minimumStock: 20 },
+    { name: "Hộp đựng thức ăn",         unit: "cái",   currentStock: 500, minimumStock: 200 },
+    { name: "Túi giấy KFC",             unit: "cái",   currentStock: 300, minimumStock: 100 },
+    { name: "Găng tay nilon",            unit: "đôi",   currentStock: 200, minimumStock: 100 },
+    { name: "Nước sốt tiêu chanh",       unit: "lít",   currentStock: 3,   minimumStock: 5  }, // below minimum → alert
+    { name: "Gia vị lắc gà",            unit: "kg",    currentStock: 2,   minimumStock: 4  }, // below minimum → alert
+  ];
+
+  await prisma.inventoryTransaction.deleteMany({});
+  await prisma.inventoryItem.deleteMany({});
+  await prisma.inventoryItem.createMany({ data: inventoryItems });
+  console.log(`✓ Inventory: ${inventoryItems.length} items seeded (2 low-stock alerts)`);
+
+  console.log("\n✅ Database seeded successfully!");
+  console.log("   Accounts (all password: 123456):");
+  console.log("   kitchen01–04  · supervisor01–02  · manager01");
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());
