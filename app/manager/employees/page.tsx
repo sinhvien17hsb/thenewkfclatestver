@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Users, ToggleLeft, ToggleRight, Loader2, Search, ChefHat, CreditCard, Briefcase, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { usePolling } from "@/lib/hooks";
-import { useAuthStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 
 interface DbEmployee  { id: string; name: string; employeeId: string; branch: string; role: string; isActive: boolean; }
@@ -20,29 +19,14 @@ const ROLE_META: Record<string, { label: string; icon: React.ElementType; color:
 };
 
 export default function EmployeesPage() {
-  const { users } = useAuthStore();
   const { data: dbEmployees, refetch } = usePolling<DbEmployee[]>("/api/employees", 0);
   const [search, setSearch] = useState("");
   const [toggling, setToggling] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState("");
 
-  // Map Zustand store users to display shape
-  const storeEmployees: DisplayEmployee[] = users.map((u) => ({
-    id: u.id,
-    name: u.name,
-    employeeId: u.employeeId,
-    branch: u.branchName ?? "",
-    role: u.role,
-    isActive: true,
-    source: "store",
-  }));
-
-  // DB employees take priority; fill in store-only accounts not in DB
-  const dbIds = new Set((dbEmployees ?? []).map((e) => e.employeeId));
-  const allEmployees: DisplayEmployee[] = [
-    ...(dbEmployees ?? []).map((e) => ({ ...e, source: "db" as const })),
-    ...storeEmployees.filter((e) => !dbIds.has(e.employeeId)),
-  ];
+  const allEmployees: DisplayEmployee[] = (dbEmployees ?? []).map(
+    (e) => ({ ...e, source: "db" as const })
+  );
 
   const filtered = allEmployees.filter((e) => {
     const matchSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -53,10 +37,6 @@ export default function EmployeesPage() {
   });
 
   const handleToggle = async (emp: DisplayEmployee) => {
-    if (emp.source === "store") {
-      toast.error("Tài khoản hệ thống không thể vô hiệu hóa.");
-      return;
-    }
     setToggling(emp.id);
     try {
       const res = await fetch(`/api/employees/${emp.id}`, {

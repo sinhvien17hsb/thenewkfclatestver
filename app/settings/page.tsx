@@ -1,14 +1,17 @@
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Settings, ChevronRight, LogIn, LogOut, Briefcase,
   Info, User, ShieldCheck, Globe
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthStore, useAppStore } from "@/lib/store";
-import { AUTH_ROLE_LABELS, AUTH_ROLE_AVATARS, AUTH_ROLE_COLORS } from "@/lib/types";
+import { useAppStore } from "@/lib/store";
+import { readUserCookie, logoutAndRedirect, ROLE_AVATARS, ROLE_LABELS } from "@/lib/auth-client";
+import type { ClientUser } from "@/lib/auth-client";
+import { AUTH_ROLE_COLORS } from "@/lib/types";
+import type { AuthRole } from "@/lib/types";
 import { translate } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 
@@ -44,17 +47,19 @@ function SettingRow({
 }
 
 export default function SettingsPage() {
-  const router = useRouter();
-  const { user, logout } = useAuthStore();
   const { language, setLanguage } = useAppStore();
+  const [user, setUser] = useState<ClientUser | null>(null);
   const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
 
-  const roleColor = user ? AUTH_ROLE_COLORS[user.role] : null;
+  useEffect(() => {
+    setUser(readUserCookie());
+  }, []);
 
-  const handleLogout = () => {
-    logout();
+  const roleColor = user ? AUTH_ROLE_COLORS[user.role as AuthRole] : null;
+
+  const handleLogout = async () => {
     toast.success(language === "vi" ? "Đã đăng xuất thành công." : "Signed out successfully.");
-    router.push("/");
+    await logoutAndRedirect("/");
   };
 
   const toggleLanguage = () => {
@@ -88,7 +93,7 @@ export default function SettingsPage() {
         >
           <div className="p-4 flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center text-3xl flex-shrink-0">
-              {user ? AUTH_ROLE_AVATARS[user.role] : "👤"}
+              {user ? ROLE_AVATARS[user.role] : "👤"}
             </div>
             <div className="flex-1">
               <div className="text-white font-black text-base">
@@ -97,7 +102,7 @@ export default function SettingsPage() {
               {user ? (
                 <div className={`inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${roleColor?.bg} ${roleColor?.text}`}>
                   <ShieldCheck className="h-3 w-3" />
-                  {AUTH_ROLE_LABELS[user.role]}
+                  {ROLE_LABELS[user.role]}
                 </div>
               ) : (
                 <div className="text-red-100 text-xs mt-0.5">{tr("settings_cust_mode")}</div>
@@ -124,7 +129,7 @@ export default function SettingsPage() {
               <SettingRow
                 icon={ShieldCheck}
                 label={tr("settings_dashboard")}
-                desc={`${tr("settings_dashboard_d")} ${AUTH_ROLE_LABELS[user.role]}`}
+                desc={`${tr("settings_dashboard_d")} ${ROLE_LABELS[user.role]}`}
                 href={DASHBOARD_MAP[user.role] ?? "/kitchen/orders"}
               />
               <div className="border-t border-gray-100" />

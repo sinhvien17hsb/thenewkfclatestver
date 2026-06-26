@@ -5,16 +5,12 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, UserPlus, CheckCircle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthStore } from "@/lib/store";
+import { writeUserCookie, ROLE_REDIRECT } from "@/lib/auth-client";
+import type { ClientUser } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  BRANCH_OPTIONS,
-  STORE_ACCESS_CODE,
-  AUTH_ROLE_LABELS,
-  AUTH_ROLE_AVATARS,
-  type AuthRole,
-} from "@/lib/types";
+import { BRANCH_OPTIONS, STORE_ACCESS_CODE, AUTH_ROLE_LABELS, AUTH_ROLE_AVATARS } from "@/lib/types";
+import type { AuthRole } from "@/lib/types";
 
 const REDIRECT_MAP: Record<string, string> = {
   kitchen: "/kitchen/orders",
@@ -24,8 +20,6 @@ const REDIRECT_MAP: Record<string, string> = {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register } = useAuthStore();
-
   const [form, setForm] = useState({
     name: "",
     employeeId: "",
@@ -50,13 +44,11 @@ export default function RegisterPage() {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = "Vui lòng nhập họ tên.";
     if (!form.employeeId.trim()) e.employeeId = "Vui lòng nhập mã nhân viên.";
-    if (!form.email.trim() || !form.email.includes("@")) e.email = "Email không hợp lệ.";
     if (form.password.length < 6) e.password = "Mật khẩu tối thiểu 6 ký tự.";
     if (form.password !== form.confirmPassword) e.confirmPassword = "Mật khẩu xác nhận không khớp.";
     if (!form.role) e.role = "Vui lòng chọn chức vụ.";
     if (!form.branchId) e.branchId = "Vui lòng chọn chi nhánh.";
-    if (form.storeCode !== STORE_ACCESS_CODE)
-      e.storeCode = "Mã xác thực cửa hàng không hợp lệ.";
+    if (form.storeCode !== STORE_ACCESS_CODE) e.storeCode = "Mã xác thực cửa hàng không hợp lệ.";
     return e;
   };
 
@@ -67,28 +59,47 @@ export default function RegisterPage() {
     if (Object.keys(errs).length > 0) return;
 
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      // Map lowercase role to API role names
+      const roleMap: Record<string, string> = {
+        kitchen: "KITCHEN",
+        supervisor: "CASHIER",
+        manager: "MANAGER",
+      };
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          employeeId: form.employeeId.trim(),
+          branch: form.branchName,
+          role: roleMap[form.role as string] ?? "KITCHEN",
+          password: form.password,
+          confirmPassword: form.confirmPassword,
+          storeCode: form.storeCode,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Đăng ký thất bại.");
 
-    const result = register({
-      name: form.name.trim(),
-      employeeId: form.employeeId.trim(),
-      email: form.email.trim(),
-      password: form.password,
-      role: form.role as AuthRole,
-      branchId: form.branchId,
-      branchName: form.branchName,
-      avatar: AUTH_ROLE_AVATARS[form.role as AuthRole],
-    });
-
-    setLoading(false);
-    if (!result.success) {
-      setErrors({ submit: result.error ?? "Đăng ký thất bại." });
-    } else {
+      // Write display cookie
+      const user: ClientUser = {
+        id: data.user.id,
+        name: data.user.name,
+        role: (data.user.role as string).toLowerCase(),
+        branch: data.user.branch,
+        employeeId: data.user.employeeId ?? form.employeeId.trim(),
+      };
+      writeUserCookie(user);
+      toast.success("Tạo tài khoản thành công!");
       setSuccess(true);
-      toast.success("Đăng ký tài khoản thành công!");
       setTimeout(() => {
-        router.replace(REDIRECT_MAP[form.role as AuthRole] ?? "/");
+        window.location.href = ROLE_REDIRECT[user.role] ?? REDIRECT_MAP[form.role as string] ?? "/staff/kitchen";
       }, 1500);
+    } catch (err: unknown) {
+      setErrors({ submit: (err as Error).message });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -115,9 +126,7 @@ export default function RegisterPage() {
       <div className="bg-[#1A1A1A] text-white">
         <div className="max-w-lg mx-auto px-6 py-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-[#E4002B] flex items-center justify-center font-black text-xl">
-              K
-            </div>
+            <div className="w-12 h-12 rounded-full bg-[#E4002B] flex items-center justify-center font-black text-xl">K</div>
             <div>
               <div className="font-black text-2xl tracking-wide">KFC SYNC</div>
               <div className="text-xs text-gray-400">Đăng ký tài khoản nhân viên</div>
@@ -141,56 +150,32 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* Name + Employee ID */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-gray-700">Họ và tên *</label>
-                  <Input
-                    value={form.name}
-                    onChange={(e) => set("name", e.target.value)}
+                  <Input value={form.name} onChange={(e) => set("name", e.target.value)}
                     placeholder="Nguyễn Văn A"
-                    className={errors.name ? "border-red-400" : ""}
-                  />
+                    className={errors.name ? "border-red-400" : ""} />
                   {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-gray-700">Mã nhân viên *</label>
-                  <Input
-                    value={form.employeeId}
-                    onChange={(e) => set("employeeId", e.target.value)}
+                  <Input value={form.employeeId} onChange={(e) => set("employeeId", e.target.value)}
                     placeholder="nv001"
-                    className={errors.employeeId ? "border-red-400" : ""}
-                  />
+                    className={errors.employeeId ? "border-red-400" : ""} />
                   {errors.employeeId && <p className="text-xs text-red-500">{errors.employeeId}</p>}
                 </div>
               </div>
 
-              {/* Email */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-700">Email *</label>
-                <Input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => set("email", e.target.value)}
-                  placeholder="email@kfc.vn"
-                  className={errors.email ? "border-red-400" : ""}
-                />
-                {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
-              </div>
-
-              {/* Password */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-gray-700">Mật khẩu *</label>
                   <div className="relative">
-                    <Input
-                      type={showPw ? "text" : "password"}
-                      value={form.password}
-                      onChange={(e) => set("password", e.target.value)}
-                      placeholder="••••••"
-                      className={`pr-9 ${errors.password ? "border-red-400" : ""}`}
-                    />
-                    <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Input type={showPw ? "text" : "password"} value={form.password}
+                      onChange={(e) => set("password", e.target.value)} placeholder="••••••"
+                      className={`pr-9 ${errors.password ? "border-red-400" : ""}`} />
+                    <button type="button" onClick={() => setShowPw(!showPw)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                       {showPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                     </button>
                   </div>
@@ -199,14 +184,11 @@ export default function RegisterPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-gray-700">Xác nhận MK *</label>
                   <div className="relative">
-                    <Input
-                      type={showConfirm ? "text" : "password"}
-                      value={form.confirmPassword}
-                      onChange={(e) => set("confirmPassword", e.target.value)}
-                      placeholder="••••••"
-                      className={`pr-9 ${errors.confirmPassword ? "border-red-400" : ""}`}
-                    />
-                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Input type={showConfirm ? "text" : "password"} value={form.confirmPassword}
+                      onChange={(e) => set("confirmPassword", e.target.value)} placeholder="••••••"
+                      className={`pr-9 ${errors.confirmPassword ? "border-red-400" : ""}`} />
+                    <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                       {showConfirm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                     </button>
                   </div>
@@ -214,59 +196,38 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Role */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-gray-700">Chức vụ *</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(["kitchen", "supervisor", "manager"] as const).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => set("role", r)}
+                    <button key={r} type="button" onClick={() => set("role", r)}
                       className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-center ${
-                        form.role === r
-                          ? "border-[#E4002B] bg-red-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
+                        form.role === r ? "border-[#E4002B] bg-red-50" : "border-gray-200 hover:border-gray-300"
+                      }`}>
                       <span className="text-xl">{AUTH_ROLE_AVATARS[r]}</span>
-                      <span className="text-[10px] font-semibold text-gray-700 leading-tight">
-                        {AUTH_ROLE_LABELS[r]}
-                      </span>
+                      <span className="text-[10px] font-semibold text-gray-700 leading-tight">{AUTH_ROLE_LABELS[r]}</span>
                     </button>
                   ))}
                 </div>
                 {errors.role && <p className="text-xs text-red-500">{errors.role}</p>}
               </div>
 
-              {/* Branch */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-gray-700">Chi nhánh *</label>
-                <select
-                  value={form.branchId}
+                <select value={form.branchId}
                   onChange={(e) => {
                     const opt = BRANCH_OPTIONS.find((b) => b.id === e.target.value);
-                    setForm((f) => ({
-                      ...f,
-                      branchId: e.target.value,
-                      branchName: opt?.name ?? "",
-                    }));
+                    setForm((f) => ({ ...f, branchId: e.target.value, branchName: opt?.name ?? "" }));
                   }}
                   className={`w-full h-10 rounded-xl border px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#E4002B] ${
                     errors.branchId ? "border-red-400" : "border-gray-200"
-                  }`}
-                >
+                  }`}>
                   <option value="">-- Chọn chi nhánh --</option>
-                  {BRANCH_OPTIONS.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
+                  {BRANCH_OPTIONS.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
                 {errors.branchId && <p className="text-xs text-red-500">{errors.branchId}</p>}
               </div>
 
-              {/* Store Access Code */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-gray-700">
                   Mã xác thực cửa hàng *{" "}
@@ -274,16 +235,12 @@ export default function RegisterPage() {
                 </label>
                 <div className="relative">
                   <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    value={form.storeCode}
+                  <Input value={form.storeCode}
                     onChange={(e) => set("storeCode", e.target.value.toUpperCase())}
                     placeholder="KFCXXXXX"
-                    className={`pl-9 font-mono tracking-widest ${errors.storeCode ? "border-red-400" : ""}`}
-                  />
+                    className={`pl-9 font-mono tracking-widest ${errors.storeCode ? "border-red-400" : ""}`} />
                 </div>
-                {errors.storeCode && (
-                  <p className="text-xs text-red-500 font-semibold">{errors.storeCode}</p>
-                )}
+                {errors.storeCode && <p className="text-xs text-red-500 font-semibold">{errors.storeCode}</p>}
               </div>
 
               <Button type="submit" className="w-full h-11 text-base" disabled={loading}>

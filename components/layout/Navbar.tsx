@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Bell, ShoppingCart, Home, ChefHat, BarChart3,
   ClipboardList, Users, Clock, ShieldCheck, LineChart,
@@ -9,22 +9,21 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { useAppStore, useAuthStore } from "@/lib/store";
+import { useAppStore } from "@/lib/store";
+import { readUserCookie, logoutAndRedirect, ROLE_AVATARS, ROLE_LABELS, ROLE_REDIRECT } from "@/lib/auth-client";
+import type { ClientUser } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
-import { AUTH_ROLE_LABELS, AUTH_ROLE_COLORS, AUTH_ROLE_AVATARS } from "@/lib/types";
 import { translate } from "@/lib/i18n";
 
 const KITCHEN_NAV = [
   { href: "/kitchen/orders", label: "Đơn bếp", icon: ChefHat },
   { href: "/kitchen/sop", label: "Quy trình SOP", icon: ClipboardList },
 ];
-
 const SUPERVISOR_NAV = [
   { href: "/kitchen/orders", label: "Đơn bếp", icon: ChefHat },
   { href: "/kitchen/sop", label: "SOP", icon: ClipboardList },
   { href: "/manager/shifts", label: "Ca làm việc", icon: Clock },
 ];
-
 const MANAGER_NAV = [
   { href: "/manager/dashboard", label: "Dashboard", icon: BarChart3 },
   { href: "/manager/menu", label: "Thực đơn", icon: UtensilsCrossed },
@@ -35,21 +34,18 @@ const MANAGER_NAV = [
   { href: "/manager/alerts", label: "Cảnh báo", icon: Bell },
 ];
 
-const REDIRECT_MAP: Record<string, string> = {
-  kitchen: "/kitchen/orders",
-  supervisor: "/manager/shifts",
-  manager: "/manager/dashboard",
-};
-
 export function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { cartItemCount, notificationCount, language } = useAppStore();
-  const { user, logout } = useAuthStore();
+  const [user, setUser] = useState<ClientUser | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const count = cartItemCount();
   const tr = (key: Parameters<typeof translate>[0]) => translate(key, language);
+
+  useEffect(() => {
+    setUser(readUserCookie());
+  }, []);
 
   const CUSTOMER_NAV = [
     { href: "/", label: tr("nav_home"), icon: Home },
@@ -65,14 +61,12 @@ export function Navbar() {
       : KITCHEN_NAV
     : CUSTOMER_NAV;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
     setProfileOpen(false);
     toast.success("Đã đăng xuất.");
-    router.push("/");
+    await logoutAndRedirect("/");
   };
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -83,7 +77,6 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const roleColor = user ? AUTH_ROLE_COLORS[user.role] : null;
   const isActive = (href: string) =>
     pathname === href || (href !== "/" && pathname.startsWith(href + "/"));
 
@@ -95,10 +88,12 @@ export function Navbar() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/kfc-logo.png" alt="KFC" className="w-10 h-10 object-contain rounded-full bg-white p-0.5" />
           <div>
-            <div className="font-black text-white text-lg leading-none tracking-wide drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">The New KFC</div>
+            <div className="font-black text-white text-lg leading-none tracking-wide drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">
+              The New KFC
+            </div>
             {user && (
               <div className="text-[10px] text-gray-400 leading-none mt-0.5">
-                {user.branchName.replace("KFC ", "")}
+                {user.branch.replace("KFC ", "")}
               </div>
             )}
           </div>
@@ -137,7 +132,6 @@ export function Navbar() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2">
-          {/* Settings icon */}
           <Link
             href="/settings"
             className={cn(
@@ -148,12 +142,8 @@ export function Navbar() {
             <Settings className="h-5 w-5 text-gray-300" />
           </Link>
 
-          {/* Cart - customers only */}
           {!user && (
-            <Link
-              href="/customer/cart"
-              className="relative p-2 rounded-xl hover:bg-white/10 transition-colors"
-            >
+            <Link href="/customer/cart" className="relative p-2 rounded-xl hover:bg-white/10 transition-colors">
               <ShoppingCart className="h-5 w-5 text-gray-300" />
               {count > 0 && (
                 <motion.span
@@ -167,7 +157,6 @@ export function Navbar() {
             </Link>
           )}
 
-          {/* Notifications */}
           <button className="relative p-2 rounded-xl hover:bg-white/10 transition-colors">
             <Bell className="h-5 w-5 text-gray-300" />
             {notificationCount > 0 && (
@@ -177,7 +166,6 @@ export function Navbar() {
             )}
           </button>
 
-          {/* Profile dropdown (employee) OR Login button (customer) */}
           {user && (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -185,12 +173,14 @@ export function Navbar() {
                 className="flex items-center gap-2 pl-1 pr-3 py-1.5 rounded-xl hover:bg-white/10 transition-colors"
               >
                 <div className="w-8 h-8 rounded-full bg-[#E4002B] flex items-center justify-center text-lg flex-shrink-0">
-                  {AUTH_ROLE_AVATARS[user.role]}
+                  {ROLE_AVATARS[user.role] ?? "👤"}
                 </div>
                 <div className="hidden sm:block text-left">
-                  <div className="text-xs font-bold text-white leading-none">{user.name.split(" ").slice(-2).join(" ")}</div>
-                  <div className={`text-[10px] leading-none mt-0.5 ${roleColor?.text.replace("text-", "text-") ?? "text-gray-400"}`}>
-                    {AUTH_ROLE_LABELS[user.role]}
+                  <div className="text-xs font-bold text-white leading-none">
+                    {user.name.split(" ").slice(-2).join(" ")}
+                  </div>
+                  <div className="text-[10px] leading-none mt-0.5 text-gray-400">
+                    {ROLE_LABELS[user.role] ?? user.role}
                   </div>
                 </div>
                 <span className="text-gray-400 text-xs">▾</span>
@@ -206,8 +196,8 @@ export function Navbar() {
                   >
                     <div className="bg-[#1A1A1A] px-4 py-3">
                       <div className="text-sm font-bold text-white">{user.name}</div>
-                      <div className={`text-xs mt-0.5 px-2 py-0.5 rounded-full inline-block font-medium ${roleColor?.bg} ${roleColor?.text}`}>
-                        {AUTH_ROLE_LABELS[user.role]}
+                      <div className="text-xs mt-0.5 text-gray-300">
+                        {ROLE_LABELS[user.role] ?? user.role}
                       </div>
                     </div>
                     <div className="py-1">
@@ -219,7 +209,7 @@ export function Navbar() {
                         <User className="h-4 w-4 text-gray-400" /> Hồ sơ cá nhân
                       </Link>
                       <Link
-                        href={REDIRECT_MAP[user.role] ?? "/"}
+                        href={ROLE_REDIRECT[user.role] ?? "/"}
                         onClick={() => setProfileOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-sm text-gray-700"
                       >
@@ -275,7 +265,7 @@ export function Navbar() {
                 pathname.startsWith("/employee/profile") ? "text-[#E4002B]" : "text-gray-500"
               )}
             >
-              <div className="text-lg leading-none">{AUTH_ROLE_AVATARS[user.role]}</div>
+              <div className="text-lg leading-none">{ROLE_AVATARS[user.role] ?? "👤"}</div>
               <span className="text-[10px] font-medium">Tôi</span>
             </Link>
           ) : (

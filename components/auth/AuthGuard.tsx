@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuthStore, readStoredAuthUser } from "@/lib/store";
+import { readUserCookie } from "@/lib/auth-client";
+import type { ClientUser } from "@/lib/auth-client";
 import { ROLE_PERMISSIONS } from "@/lib/types";
-import type { AuthRole, AuthUser } from "@/lib/types";
+import type { AuthRole } from "@/lib/types";
 
 const Spinner = () => (
   <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -13,42 +14,50 @@ const Spinner = () => (
 
 function hasAccess(role: string, path: string): boolean {
   const allowed = ROLE_PERMISSIONS[role as AuthRole] ?? [];
-  return allowed.some((prefix) => path === prefix || path.startsWith(prefix + "/"));
+  return allowed.some(
+    (prefix) => path === prefix || path.startsWith(prefix + "/")
+  );
 }
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-
-  const storeUser = useAuthStore((state) => state.user);
-  const [cookieUser, setCookieUser] = useState<AuthUser | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
+  // undefined = loading, null = not authenticated, object = authenticated
+  const [user, setUser] = useState<ClientUser | null | undefined>(undefined);
 
   useEffect(() => {
-    setCookieUser(readStoredAuthUser());
-    setMounted(true);
+    const local = readUserCookie();
+    if (local) {
+      setUser(local);
+      return;
+    }
+    // Fallback: verify via API (handles cookie-user missing but JWT valid)
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        setUser(data?.user ?? null);
+      })
+      .catch(() => setUser(null));
   }, []);
 
-  const currentUser = storeUser ?? (mounted ? cookieUser : null);
-
   useEffect(() => {
-    if (!mounted) return;
-    const u = currentUser;
-    if (!u) {
+    if (user === undefined) return;
+    if (!user) {
       router.replace(`/staff/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
-    if (!hasAccess(u.role, pathname)) {
-      if (u.role === "kitchen") router.replace("/kitchen/orders");
-      else if (u.role === "supervisor") router.replace("/manager/shifts");
-      else if (u.role === "manager") router.replace("/manager/dashboard");
-      else router.replace("/unauthorized");
-      return;
+    if (!hasAccess(user.role, pathname)) {
+      const fallback =
+        user.role === "kitchen" ? "/kitchen/orders"
+        : user.role === "supervisor" ? "/manager/shifts"
+        : user.role === "manager" ? "/manager/dashboard"
+        : "/unauthorized";
+      router.replace(fallback);
     }
-    setAuthReady(true);
-  }, [mounted, currentUser, pathname, router]);
+  }, [user, pathname, router]);
 
-  if (!authReady) return <Spinner />;
+  if (user === undefined) return <Spinner />;
+  if (!user) return <Spinner />;
+  if (!hasAccess(user.role, pathname)) return <Spinner />;
   return <>{children}</>;
 }

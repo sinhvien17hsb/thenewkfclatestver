@@ -1,23 +1,13 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ShieldX, ArrowLeft } from "lucide-react";
-import { useAuthStore } from "@/lib/store";
+import { readUserCookie, ROLE_LABELS, ROLE_REDIRECT } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { AUTH_ROLE_LABELS } from "@/lib/types";
-
-const DASHBOARD_MAP: Record<string, string> = {
-  kitchen: "/kitchen/orders",
-  supervisor: "/manager/shifts",
-  manager: "/manager/dashboard",
-};
 
 export default function UnauthorizedPage() {
-  const router = useRouter();
-  const { user } = useAuthStore();
-
-  const dashboard = user ? (DASHBOARD_MAP[user.role] ?? "/") : "/employee/login";
+  const user = readUserCookie();
+  const dashboard = user ? (ROLE_REDIRECT[user.role] ?? "/") : "/employee/login";
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -40,17 +30,14 @@ export default function UnauthorizedPage() {
           <p className="text-sm text-gray-400 mb-8">
             Tài khoản của bạn có vai trò{" "}
             <span className="font-semibold text-gray-600">
-              {AUTH_ROLE_LABELS[user.role]}
+              {ROLE_LABELS[user.role] ?? user.role}
             </span>{" "}
             — không đủ quyền hạn để truy cập trang này.
           </p>
         )}
 
         <div className="flex flex-col gap-3">
-          <Button
-            className="h-11"
-            onClick={() => router.replace(dashboard)}
-          >
+          <Button className="h-11" onClick={() => { window.location.href = dashboard; }}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Quay lại Dashboard
           </Button>
           {!user && (

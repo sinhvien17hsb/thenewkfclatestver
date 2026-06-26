@@ -6,6 +6,7 @@ const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? "kfc-sync-fallback-secret"
 );
 const COOKIE_NAME = "kfc-staff-token";
+const USER_COOKIE_NAME = "kfc-user";
 
 export interface JWTPayload {
   id: string;
@@ -14,6 +15,34 @@ export interface JWTPayload {
   role: string;
   branch: string;
 }
+
+// Hardcoded demo accounts — always available, no database required
+export const MOCK_STAFF: Array<JWTPayload & { password: string }> = [
+  {
+    id: "mock_kitchen01",
+    employeeId: "kitchen01",
+    name: "Trần Văn Bếp",
+    role: "kitchen",
+    branch: "KFC Vincom Bà Triệu",
+    password: "123456",
+  },
+  {
+    id: "mock_supervisor01",
+    employeeId: "supervisor01",
+    name: "Nguyễn Thị Hương",
+    role: "supervisor",
+    branch: "KFC Vincom Bà Triệu",
+    password: "123456",
+  },
+  {
+    id: "mock_manager01",
+    employeeId: "manager01",
+    name: "Lê Minh Tuấn",
+    role: "manager",
+    branch: "KFC Vincom Bà Triệu",
+    password: "123456",
+  },
+];
 
 export async function signToken(payload: JWTPayload): Promise<string> {
   return new SignJWT({ ...payload })
@@ -53,6 +82,7 @@ export async function setSessionCookie(token: string) {
 export async function clearSessionCookie() {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
+  cookieStore.delete(USER_COOKIE_NAME);
 }
 
 export async function hashPassword(password: string): Promise<string> {

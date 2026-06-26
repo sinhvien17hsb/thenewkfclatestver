@@ -5,7 +5,7 @@ import { CheckCircle, Circle, AlertTriangle, Clock, ChevronDown, ChevronRight, S
 import { toast } from "sonner";
 import { sopChecklists, sopCompletions } from "@/lib/data/sop";
 import { employees } from "@/lib/data/employees";
-import { useAuthStore } from "@/lib/store";
+import { readUserCookie } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -14,8 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function SOPPage() {
-  const { user } = useAuthStore();
-  const role = user?.role ?? "kitchen";
+  const role = readUserCookie()?.role ?? "kitchen";
   const canSeeHistory = role === "supervisor" || role === "manager";
   const canSeeAnalytics = role === "manager";
 
