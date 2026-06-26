@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore, readStoredAuthUser } from "@/lib/store";
 import { ROLE_PERMISSIONS } from "@/lib/types";
-import type { AuthRole } from "@/lib/types";
+import type { AuthRole, AuthUser } from "@/lib/types";
 
 const Spinner = () => (
   <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -19,12 +19,22 @@ function hasAccess(role: string, path: string): boolean {
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  const storeUser = useAuthStore((state) => state.user);
+  const [cookieUser, setCookieUser] = useState<AuthUser | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    // After soft navigation: Zustand store has user in memory.
-    // After hard navigation: read from cookie / localStorage.
-    const u = useAuthStore.getState().user ?? readStoredAuthUser();
+    setCookieUser(readStoredAuthUser());
+    setMounted(true);
+  }, []);
+
+  const currentUser = storeUser ?? (mounted ? cookieUser : null);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const u = currentUser;
     if (!u) {
       router.replace(`/staff/login?redirect=${encodeURIComponent(pathname)}`);
       return;
@@ -37,7 +47,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
     setAuthReady(true);
-  }, [pathname, router]);
+  }, [mounted, currentUser, pathname, router]);
 
   if (!authReady) return <Spinner />;
   return <>{children}</>;

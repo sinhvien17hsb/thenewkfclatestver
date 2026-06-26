@@ -45,42 +45,39 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Reactive subscription — updates immediately when login() sets the user
+  const storeUser = useAuthStore((state) => state.user);
+
+  // Fallback for hard refresh: read from cookie/localStorage after mount
+  const [cookieUser, setCookieUser] = useState<AuthUser | null>(null);
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    // After soft navigation (router.replace from login), Zustand store already
-    // has the user in memory. After hard navigation (browser refresh),
-    // fall back to cookie / localStorage.
-    const u = useAuthStore.getState().user ?? readStoredAuthUser();
-    setCurrentUser(u);
+    setCookieUser(readStoredAuthUser());
     setMounted(true);
   }, []);
 
-  // Redirect wrong roles
+  const currentUser = storeUser ?? (mounted ? cookieUser : null);
+
+  // Redirect wrong roles after we know who the user is
   useEffect(() => {
-    if (!mounted || !currentUser) return;
-    if (currentUser.role === "kitchen") {
-      router.replace("/kitchen/orders");
-      return;
-    }
+    if (!currentUser) return;
+    if (currentUser.role === "kitchen") { router.replace("/kitchen/orders"); return; }
     if (currentUser.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
       router.replace("/manager/shifts");
     }
-  }, [mounted, currentUser, pathname, router]);
+  }, [currentUser, pathname, router]);
 
-  if (!mounted) return <Spinner />;
+  // Pre-mount or no user: spinner / prompt
+  if (!currentUser && !mounted) return <Spinner />;
   if (!currentUser) return <LoginPrompt />;
   if (currentUser.role === "kitchen") return <Spinner />;
   if (currentUser.role === "supervisor" && !pathname.startsWith("/manager/shifts")) return <Spinner />;
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
-
-  const handleLogout = () => {
-    logout();
-    router.push("/");
-  };
+  const handleLogout = () => { logout(); router.push("/"); };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
@@ -112,9 +109,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
             <Link key={href} href={href} onClick={() => setSidebarOpen(false)}
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
-                isActive(href)
-                  ? "bg-[#E4002B] text-white"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800"
+                isActive(href) ? "bg-[#E4002B] text-white" : "text-gray-400 hover:text-white hover:bg-gray-800"
               )}
             >
               <Icon className="h-4 w-4 flex-shrink-0" />

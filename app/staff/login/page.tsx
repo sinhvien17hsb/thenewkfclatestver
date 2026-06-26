@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -25,18 +25,26 @@ const DEMO = [
 export default function StaffLoginPage() {
   const router = useRouter();
   const { login } = useAuthStore();
+  const storeUser = useAuthStore((state) => state.user);
   const [idOrEmail, setIdOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // When user is set in Zustand store (after login), navigate away.
+  // Using useEffect ensures navigation happens after React commits the update.
+  useEffect(() => {
+    if (!storeUser) return;
+    const dest = REDIRECT_MAP[storeUser.role] ?? "/kitchen/orders";
+    router.replace(dest);
+  }, [storeUser, router]);
+
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     if (!idOrEmail.trim() || !password.trim()) {
-      setError("Vui lòng điền đầy đủ thông tin.");
-      return;
+      setError("Vui lòng điền đầy đủ thông tin."); return;
     }
     setLoading(true);
     const result = login(idOrEmail.trim(), password);
@@ -46,10 +54,7 @@ export default function StaffLoginPage() {
       return;
     }
     toast.success("Đăng nhập thành công!");
-    const user = useAuthStore.getState().user;
-    // Soft navigation: Zustand store keeps the user in memory across the
-    // page transition — no need to re-read from cookie/localStorage
-    router.replace(REDIRECT_MAP[user?.role ?? ""] ?? "/kitchen/orders");
+    // navigation handled by the useEffect above
   };
 
   return (
@@ -73,11 +78,8 @@ export default function StaffLoginPage() {
 
           <div>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Mã nhân viên</label>
-            <Input
-              value={idOrEmail}
-              onChange={(e) => setIdOrEmail(e.target.value)}
-              placeholder="VD: kitchen01"
-              autoComplete="username"
+            <Input value={idOrEmail} onChange={(e) => setIdOrEmail(e.target.value)}
+              placeholder="VD: kitchen01" autoComplete="username"
               className="bg-gray-900 border-gray-800 text-white placeholder:text-gray-600 rounded-xl h-10 focus:border-[#E4002B]"
             />
           </div>
@@ -85,17 +87,12 @@ export default function StaffLoginPage() {
           <div>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Mật khẩu</label>
             <div className="relative">
-              <Input
-                type={showPw ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••"
-                autoComplete="current-password"
+              <Input type={showPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••" autoComplete="current-password"
                 className="bg-gray-900 border-gray-800 text-white placeholder:text-gray-600 rounded-xl h-10 pr-10 focus:border-[#E4002B]"
               />
               <button type="button" onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-              >
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300">
                 {showPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               </button>
             </div>
@@ -104,12 +101,10 @@ export default function StaffLoginPage() {
           <Button type="submit" className="w-full h-11 rounded-xl" disabled={loading}>
             {loading
               ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Đang chuyển hướng...</>
-              : <><LogIn className="h-4 w-4 mr-2" />Đăng nhập</>
-            }
+              : <><LogIn className="h-4 w-4 mr-2" />Đăng nhập</>}
           </Button>
         </form>
 
-        {/* Demo accounts */}
         <div className="mt-4 space-y-1.5">
           <p className="text-xs text-gray-600 font-semibold uppercase tracking-wide text-center mb-2">Tài khoản demo · mật khẩu: 123456</p>
           {DEMO.map((acc) => (
