@@ -2,20 +2,25 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const category = searchParams.get("category");
-  const search = searchParams.get("search");
-  const availableOnly = searchParams.get("available") === "true";
+  try {
+    const { searchParams } = new URL(req.url);
+    const category = searchParams.get("category");
+    const search = searchParams.get("search");
+    const availableOnly = searchParams.get("available") === "true";
 
-  const items = await prisma.menuItem.findMany({
-    where: {
-      ...(availableOnly ? { available: true } : {}),
-      ...(category ? { category } : {}),
-      ...(search ? { name: { contains: search } } : {}),
-    },
-    orderBy: { createdAt: "asc" },
-  });
-  return NextResponse.json(items);
+    const items = await prisma.menuItem.findMany({
+      where: {
+        ...(availableOnly ? { available: true } : {}),
+        ...(category ? { category } : {}),
+        ...(search ? { name: { contains: search } } : {}),
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    return NextResponse.json(items);
+  } catch (e) {
+    console.error("[menu GET]", e);
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {

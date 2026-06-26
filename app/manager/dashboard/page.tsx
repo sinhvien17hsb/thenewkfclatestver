@@ -36,12 +36,18 @@ function StatCard({ icon: Icon, label, value, sub, color }: { icon: React.Elemen
 }
 
 export default function ManagerDashboard() {
-  const { data, loading } = usePolling<Analytics>("/api/analytics", 10000);
+  const { data, loading, error } = usePolling<Analytics>("/api/analytics", 10000);
 
   if (loading && !data) {
     return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 text-[#E4002B] animate-spin" /></div>;
   }
-  if (!data) return null;
+  if (error || !data) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-400 text-sm px-6 text-center">
+        <div><AlertCircle className="h-8 w-8 mx-auto mb-2" />{error ?? "Không tải được dữ liệu"}</div>
+      </div>
+    );
+  }
 
   const avgSat = data.satisfaction
     ? ((data.satisfaction.food + data.satisfaction.service + data.satisfaction.waiting) / 3)

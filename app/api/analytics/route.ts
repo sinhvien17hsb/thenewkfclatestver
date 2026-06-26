@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
 export async function GET() {
-
+  try {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(todayStart);
@@ -95,4 +95,8 @@ export async function GET() {
     recentOrders,
     weeklyData,
   });
+  } catch (e) {
+    console.error("[analytics GET]", e);
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
