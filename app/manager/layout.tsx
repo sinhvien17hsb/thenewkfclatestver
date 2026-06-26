@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BarChart3, Users, Package, LayoutDashboard, LogOut, User,
+  BarChart3, Users, Package, LayoutDashboard, LogOut,
   UtensilsCrossed, Menu, X, Clock, ShieldCheck, Bell, LineChart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,15 +41,26 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (!hydrated) return;
     const u = useAuthStore.getState().user;
-    if (!u) { router.replace("/staff/login"); return; }
-    if (u.role === "kitchen") { router.replace("/kitchen/orders"); return; }
+    if (!u) { setAuthReady(false); return; }
+    if (u.role === "kitchen") { window.location.replace("/kitchen/orders"); return; }
     if (u.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
-      router.replace("/manager/shifts"); return;
+      window.location.replace("/manager/shifts"); return;
     }
     setAuthReady(true);
-  }, [hydrated, pathname, router]);
+  }, [hydrated, pathname]);
 
-  if (!authReady) return <Spinner />;
+  if (!hydrated) return <Spinner />;
+
+  if (!authReady) return (
+    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
+      <p className="text-gray-400 text-sm">Vui lòng đăng nhập để tiếp tục.</p>
+      <a href="/staff/login"
+        className="px-5 py-2.5 bg-[#E4002B] text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors"
+      >
+        Đăng nhập
+      </a>
+    </div>
+  );
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 

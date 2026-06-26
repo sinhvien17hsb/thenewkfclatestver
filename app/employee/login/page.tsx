@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthStore, useAuthHydrated } from "@/lib/store";
+import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AUTH_ROLE_LABELS, AUTH_ROLE_AVATARS } from "@/lib/types";
@@ -30,21 +30,13 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const { login } = useAuthStore();
-  const hydrated = useAuthHydrated();
   const [idOrEmail, setIdOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Already logged in → skip login page entirely
-  useEffect(() => {
-    if (!hydrated) return;
-    const u = useAuthStore.getState().user;
-    if (u) go(u.role, redirect);
-  }, [hydrated, redirect]);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     if (!idOrEmail.trim() || !password.trim()) {
