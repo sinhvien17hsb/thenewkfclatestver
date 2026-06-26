@@ -227,12 +227,11 @@ export const useAuthStore = create<AuthStore>()(
         );
         if (!found) return { success: false, error: "Mã nhân viên/email hoặc mật khẩu không đúng." };
         set({ user: found });
+        writeAuthCookie(found);
         return { success: true };
       },
       logout: () => {
-        if (typeof window !== "undefined") {
-          try { localStorage.removeItem("kfc-current-user"); } catch {}
-        }
+        clearAuthCookie();
         set({ user: null });
       },
       register: (data) => {
@@ -269,11 +268,36 @@ export const useAuthStore = create<AuthStore>()(
   )
 );
 
-// Read the persisted auth user directly from localStorage.
-// Checks two keys: our own direct-write key (kfc-current-user, written
-// synchronously before any navigation) and Zustand's persist key as fallback.
+const COOKIE_NAME = "kfc-auth";
+
+function writeAuthCookie(user: import("@/lib/types").AuthUser): void {
+  if (typeof document === "undefined") return;
+  try {
+    // Omit password from cookie
+    const { password: _pw, ...safe } = user;
+    document.cookie = `${COOKIE_NAME}=${encodeURIComponent(JSON.stringify(safe))}; path=/; max-age=28800; SameSite=Lax`;
+  } catch {}
+}
+
+function clearAuthCookie(): void {
+  if (typeof document === "undefined") return;
+  try { document.cookie = `${COOKIE_NAME}=; path=/; max-age=0`; } catch {}
+}
+
+// Read the authenticated user. Cookie is written synchronously inside login()
+// so it is always available immediately after page navigation — no Zustand
+// timing or hydration dependency.
 export function readStoredAuthUser(): import("@/lib/types").AuthUser | null {
   if (typeof window === "undefined") return null;
+  // 1. Cookie (most reliable — written synchronously in login())
+  try {
+    const match = document.cookie.match(/(?:^|;\s*)kfc-auth=([^;]*)/);
+    if (match) {
+      const u = JSON.parse(decodeURIComponent(match[1]));
+      if (u?.id && u?.role) return u as import("@/lib/types").AuthUser;
+    }
+  } catch {}
+  // 2. Direct localStorage write (fallback)
   try {
     const direct = localStorage.getItem("kfc-current-user");
     if (direct) {
@@ -281,6 +305,7 @@ export function readStoredAuthUser(): import("@/lib/types").AuthUser | null {
       if (u?.id && u?.role) return u as import("@/lib/types").AuthUser;
     }
   } catch {}
+  // 3. Zustand persist key (last resort)
   try {
     const raw = localStorage.getItem("kfc-sync-auth");
     if (raw) {
