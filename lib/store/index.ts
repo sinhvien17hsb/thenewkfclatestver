@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { UserRole, CartItem, MenuItem, Alert, AuthUser, AuthRole } from "@/lib/types";
@@ -262,3 +263,16 @@ export const useAuthStore = create<AuthStore>()(
     }
   )
 );
+
+// Returns true only after Zustand has finished reading localStorage.
+// Prevents auth redirects from firing before the persisted session loads.
+export function useAuthHydrated() {
+  const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
+  useEffect(() => {
+    if (hydrated) return;
+    const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
+    if (useAuthStore.persist.hasHydrated()) setHydrated(true);
+    return unsub;
+  }, [hydrated]);
+  return hydrated;
+}

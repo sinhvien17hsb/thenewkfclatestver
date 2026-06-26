@@ -7,7 +7,7 @@ import {
   UtensilsCrossed, Menu, X, Clock, ShieldCheck, Bell, LineChart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useAuthHydrated } from "@/lib/store";
 
 const NAV = [
   { href: "/manager/dashboard",  label: "Tổng quan",   icon: LayoutDashboard },
@@ -28,21 +28,19 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const hydrated = useAuthHydrated();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!hydrated) return;
     if (!user) { router.replace("/employee/login?redirect=" + encodeURIComponent(pathname)); return; }
     if (user.role === "kitchen") { router.replace("/kitchen/orders"); return; }
     if (user.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
       router.replace("/manager/shifts");
     }
-  }, [mounted, user, pathname, router]);
+  }, [hydrated, user, pathname, router]);
 
-  if (!mounted) return (
+  if (!hydrated) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-[#E4002B] border-t-transparent rounded-full animate-spin" />
     </div>
