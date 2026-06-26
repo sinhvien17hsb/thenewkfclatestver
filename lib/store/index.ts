@@ -267,12 +267,15 @@ export const useAuthStore = create<AuthStore>()(
 // Returns true only after Zustand has finished reading localStorage.
 // Prevents auth redirects from firing before the persisted session loads.
 export function useAuthHydrated() {
-  const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    if (hydrated) return;
-    const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
-    if (useAuthStore.persist.hasHydrated()) setHydrated(true);
+    // This runs client-side only — safe to access persist API here
+    if (useAuthStore.persist?.hasHydrated()) {
+      setHydrated(true);
+      return;
+    }
+    const unsub = useAuthStore.persist?.onFinishHydration(() => setHydrated(true));
     return unsub;
-  }, [hydrated]);
+  }, []);
   return hydrated;
 }
