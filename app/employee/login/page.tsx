@@ -52,6 +52,7 @@ function LoginContent() {
     }
     toast.success("Đăng nhập thành công!");
     const user = useAuthStore.getState().user;
+    try { localStorage.setItem("kfc-current-user", JSON.stringify(user)); } catch {}
     go(user?.role ?? "", redirect);
   };
 

@@ -229,7 +229,12 @@ export const useAuthStore = create<AuthStore>()(
         set({ user: found });
         return { success: true };
       },
-      logout: () => set({ user: null }),
+      logout: () => {
+        if (typeof window !== "undefined") {
+          try { localStorage.removeItem("kfc-current-user"); } catch {}
+        }
+        set({ user: null });
+      },
       register: (data) => {
         const exists = get().users.find((u) => u.employeeId === data.employeeId || u.email === data.email);
         if (exists) return { success: false, error: "Mã nhân viên hoặc email đã tồn tại." };
@@ -265,16 +270,25 @@ export const useAuthStore = create<AuthStore>()(
 );
 
 // Read the persisted auth user directly from localStorage.
-// This bypasses all Zustand persist timing issues — localStorage is always
-// synchronous and available on the client after mount.
+// Checks two keys: our own direct-write key (kfc-current-user, written
+// synchronously before any navigation) and Zustand's persist key as fallback.
 export function readStoredAuthUser(): import("@/lib/types").AuthUser | null {
   if (typeof window === "undefined") return null;
   try {
+    const direct = localStorage.getItem("kfc-current-user");
+    if (direct) {
+      const u = JSON.parse(direct);
+      if (u?.id && u?.role) return u as import("@/lib/types").AuthUser;
+    }
+  } catch {}
+  try {
     const raw = localStorage.getItem("kfc-sync-auth");
-    return raw ? (JSON.parse(raw)?.state?.user ?? null) : null;
-  } catch {
-    return null;
-  }
+    if (raw) {
+      const u = JSON.parse(raw)?.state?.user;
+      if (u?.id && u?.role) return u as import("@/lib/types").AuthUser;
+    }
+  } catch {}
+  return null;
 }
 
 // Kept for backwards compatibility — now simply a mounted flag.

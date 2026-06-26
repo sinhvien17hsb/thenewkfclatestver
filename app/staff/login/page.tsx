@@ -48,8 +48,10 @@ export default function StaffLoginPage() {
       return;
     }
     toast.success("Đăng nhập thành công!");
-    // window.location.replace navigates instantly — login page disappears right away
     const user = useAuthStore.getState().user;
+    // Write directly to localStorage so the destination page can read it
+    // regardless of Zustand persist timing on Vercel
+    try { localStorage.setItem("kfc-current-user", JSON.stringify(user)); } catch {}
     go(user?.role ?? "");
   };
 
