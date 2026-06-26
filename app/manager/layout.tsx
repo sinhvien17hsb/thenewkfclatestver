@@ -7,7 +7,7 @@ import {
   UtensilsCrossed, Menu, X, Clock, ShieldCheck, Bell, LineChart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useAuthHydrated } from "@/lib/store";
 
 const NAV = [
   { href: "/manager/dashboard",  label: "Tổng quan",   icon: LayoutDashboard },
@@ -34,15 +34,12 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
+  const hydrated = useAuthHydrated();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authReady, setAuthReady] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
-
   useEffect(() => {
-    if (!mounted) return;
-    // Zustand localStorage hydration is synchronous — getState() is live after mount
+    if (!hydrated) return;
     const u = useAuthStore.getState().user;
     if (!u) { router.replace("/staff/login"); return; }
     if (u.role === "kitchen") { router.replace("/kitchen/orders"); return; }
@@ -50,7 +47,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
       router.replace("/manager/shifts"); return;
     }
     setAuthReady(true);
-  }, [mounted, pathname, router]);
+  }, [hydrated, pathname, router]);
 
   if (!authReady) return <Spinner />;
 

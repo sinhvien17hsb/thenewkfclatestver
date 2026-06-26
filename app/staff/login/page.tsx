@@ -1,11 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useAuthHydrated } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AUTH_ROLE_LABELS, AUTH_ROLE_AVATARS } from "@/lib/types";
@@ -25,13 +25,21 @@ const DEMO = [
 export default function StaffLoginPage() {
   const router = useRouter();
   const { login } = useAuthStore();
+  const hydrated = useAuthHydrated();
   const [idOrEmail, setIdOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // If already logged in, go straight to dashboard (breaks redirect loops)
+  useEffect(() => {
+    if (!hydrated) return;
+    const u = useAuthStore.getState().user;
+    if (u) router.replace(REDIRECT_MAP[u.role] ?? "/kitchen/orders");
+  }, [hydrated, router]);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!idOrEmail.trim() || !password.trim()) {
@@ -39,7 +47,6 @@ export default function StaffLoginPage() {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 300));
     const result = login(idOrEmail.trim(), password);
     if (!result.success) {
       setLoading(false);
@@ -47,7 +54,6 @@ export default function StaffLoginPage() {
       return;
     }
     toast.success("Đăng nhập thành công!");
-    // Read role directly from store and redirect immediately
     const user = useAuthStore.getState().user;
     router.replace(REDIRECT_MAP[user?.role ?? ""] ?? "/kitchen/orders");
   };

@@ -1,11 +1,11 @@
 "use client";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useAuthHydrated } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AUTH_ROLE_LABELS, AUTH_ROLE_AVATARS } from "@/lib/types";
@@ -27,13 +27,21 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const { login } = useAuthStore();
+  const hydrated = useAuthHydrated();
   const [idOrEmail, setIdOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // If already logged in, go straight to dashboard (breaks redirect loops)
+  useEffect(() => {
+    if (!hydrated) return;
+    const u = useAuthStore.getState().user;
+    if (u) router.replace(redirect ?? REDIRECT_MAP[u.role] ?? "/kitchen/orders");
+  }, [hydrated, redirect, router]);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!idOrEmail.trim() || !password.trim()) {
@@ -41,7 +49,6 @@ function LoginContent() {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 300));
     const result = login(idOrEmail.trim(), password);
     if (!result.success) {
       setLoading(false);
@@ -49,7 +56,6 @@ function LoginContent() {
       return;
     }
     toast.success("Đăng nhập thành công!");
-    // Read role directly from store and redirect immediately
     const user = useAuthStore.getState().user;
     router.replace(redirect ?? REDIRECT_MAP[user?.role ?? ""] ?? "/kitchen/orders");
   };
