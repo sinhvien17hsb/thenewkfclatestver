@@ -63,6 +63,7 @@ export default function AlertsPage() {
         title="Quality Risk Alert Engine"
         description="Cảnh báo rủi ro chất lượng · Phát hiện sự cố tự động"
         icon={<Bell className="h-5 w-5" />}
+        dark
         badge={
           criticalCount > 0 ? (
             <Badge className="bg-red-100 text-red-700 border-red-200 animate-pulse">

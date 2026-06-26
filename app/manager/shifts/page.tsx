@@ -117,6 +117,7 @@ export default function ShiftsPage() {
         title="Quản lý Ca làm việc"
         description="Phân bổ nhân lực & giám sát ca · KFC Vincom Bà Triệu"
         icon={<Clock className="h-5 w-5" />}
+        dark
         badge={<Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">📅 {new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}</Badge>}
       />
 

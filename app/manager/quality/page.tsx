@@ -47,6 +47,7 @@ export default function QualityPage() {
         title="Quality Control Center"
         description="Kiểm soát & so sánh chất lượng 5 chi nhánh KFC"
         icon={<Trophy className="h-5 w-5" />}
+        dark
         badge={
           <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs">
             🏆 Hệ thống đánh giá chuẩn KFC
