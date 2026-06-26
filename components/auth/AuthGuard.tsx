@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuthStore, useAuthHydrated } from "@/lib/store";
+import { useAuthStore } from "@/lib/store";
 
 const Spinner = () => (
   <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -13,14 +13,16 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { canAccess } = useAuthStore();
-  const hydrated = useAuthHydrated();
+  const [mounted, setMounted] = useState(false);
   const [authReady, setAuthReady] = useState(false);
 
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
-    if (!hydrated) return;
+    if (!mounted) return;
     const u = useAuthStore.getState().user;
     if (!u) {
-      router.replace(`/employee/login?redirect=${encodeURIComponent(pathname)}`);
+      router.replace(`/staff/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
     if (!canAccess(pathname)) {
@@ -30,9 +32,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
     setAuthReady(true);
-  }, [hydrated, pathname, router, canAccess]);
+  }, [mounted, pathname, router, canAccess]);
 
   if (!authReady) return <Spinner />;
-
   return <>{children}</>;
 }
