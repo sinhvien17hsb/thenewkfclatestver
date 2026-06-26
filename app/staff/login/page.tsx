@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,8 +21,11 @@ const DEMO = [
   { id: "manager01",    pw: "123456", role: "manager"    as const },
 ];
 
+function go(role: string) {
+  window.location.replace(REDIRECT_MAP[role] ?? "/kitchen/orders");
+}
+
 export default function StaffLoginPage() {
-  const router = useRouter();
   const { login } = useAuthStore();
   const hydrated = useAuthHydrated();
   const [idOrEmail, setIdOrEmail] = useState("");
@@ -32,12 +34,12 @@ export default function StaffLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // If already logged in, go straight to dashboard (breaks redirect loops)
+  // Already logged in → skip login page entirely
   useEffect(() => {
     if (!hydrated) return;
     const u = useAuthStore.getState().user;
-    if (u) router.replace(REDIRECT_MAP[u.role] ?? "/kitchen/orders");
-  }, [hydrated, router]);
+    if (u) go(u.role);
+  }, [hydrated]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +56,9 @@ export default function StaffLoginPage() {
       return;
     }
     toast.success("Đăng nhập thành công!");
+    // window.location.replace navigates instantly — login page disappears right away
     const user = useAuthStore.getState().user;
-    router.replace(REDIRECT_MAP[user?.role ?? ""] ?? "/kitchen/orders");
+    go(user?.role ?? "");
   };
 
   return (
@@ -109,7 +112,7 @@ export default function StaffLoginPage() {
 
           <Button type="submit" className="w-full h-11 rounded-xl" disabled={loading}>
             {loading
-              ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Đang xác thực...</>
+              ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Đang chuyển hướng...</>
               : <><LogIn className="h-4 w-4 mr-2" />Đăng nhập</>
             }
           </Button>
