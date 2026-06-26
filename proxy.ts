@@ -6,7 +6,7 @@ const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? "kfc-sync-fallback-secret"
 );
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("kfc-staff-token")?.value;
 
