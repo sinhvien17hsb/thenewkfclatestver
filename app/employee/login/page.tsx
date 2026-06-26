@@ -1,7 +1,7 @@
 "use client";
 import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,11 +22,8 @@ const DEMO = [
   { id: "manager01",    pw: "123456", role: "manager"    as const },
 ];
 
-function go(role: string, redirect?: string | null) {
-  window.location.replace(redirect ?? REDIRECT_MAP[role] ?? "/kitchen/orders");
-}
-
 function LoginContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const { login } = useAuthStore();
@@ -52,8 +49,7 @@ function LoginContent() {
     }
     toast.success("Đăng nhập thành công!");
     const user = useAuthStore.getState().user;
-    try { localStorage.setItem("kfc-current-user", JSON.stringify(user)); } catch {}
-    go(user?.role ?? "", redirect);
+    router.replace(redirect ?? REDIRECT_MAP[user?.role ?? ""] ?? "/kitchen/orders");
   };
 
   return (

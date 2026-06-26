@@ -49,24 +49,26 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Read user directly from localStorage on mount — always reliable on client
   useEffect(() => {
-    const u = readStoredAuthUser();
+    // After soft navigation (router.replace from login), Zustand store already
+    // has the user in memory. After hard navigation (browser refresh),
+    // fall back to cookie / localStorage.
+    const u = useAuthStore.getState().user ?? readStoredAuthUser();
     setCurrentUser(u);
     setMounted(true);
   }, []);
 
-  // Re-check role when navigating within manager pages
+  // Redirect wrong roles
   useEffect(() => {
     if (!mounted || !currentUser) return;
     if (currentUser.role === "kitchen") {
-      window.location.replace("/kitchen/orders");
+      router.replace("/kitchen/orders");
       return;
     }
     if (currentUser.role === "supervisor" && !pathname.startsWith("/manager/shifts")) {
-      window.location.replace("/manager/shifts");
+      router.replace("/manager/shifts");
     }
-  }, [mounted, currentUser, pathname]);
+  }, [mounted, currentUser, pathname, router]);
 
   if (!mounted) return <Spinner />;
   if (!currentUser) return <LoginPrompt />;

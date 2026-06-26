@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,11 +22,8 @@ const DEMO = [
   { id: "manager01",    pw: "123456", role: "manager"    as const },
 ];
 
-function go(role: string) {
-  window.location.replace(REDIRECT_MAP[role] ?? "/kitchen/orders");
-}
-
 export default function StaffLoginPage() {
+  const router = useRouter();
   const { login } = useAuthStore();
   const [idOrEmail, setIdOrEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,10 +47,9 @@ export default function StaffLoginPage() {
     }
     toast.success("Đăng nhập thành công!");
     const user = useAuthStore.getState().user;
-    // Write directly to localStorage so the destination page can read it
-    // regardless of Zustand persist timing on Vercel
-    try { localStorage.setItem("kfc-current-user", JSON.stringify(user)); } catch {}
-    go(user?.role ?? "");
+    // Soft navigation: Zustand store keeps the user in memory across the
+    // page transition — no need to re-read from cookie/localStorage
+    router.replace(REDIRECT_MAP[user?.role ?? ""] ?? "/kitchen/orders");
   };
 
   return (

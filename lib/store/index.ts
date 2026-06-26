@@ -222,7 +222,13 @@ export const useAuthStore = create<AuthStore>()(
       user: null,
       users: MOCK_ACCOUNTS,
       login: (idOrEmail, password) => {
-        const found = get().users.find(
+        // Search persisted users first, then fall back to MOCK_ACCOUNTS directly.
+        // Prevents stale persisted data from hiding mock accounts.
+        const allSources = [
+          ...get().users,
+          ...MOCK_ACCOUNTS.filter((m) => !get().users.some((u) => u.id === m.id)),
+        ];
+        const found = allSources.find(
           (u) => (u.employeeId === idOrEmail || u.email === idOrEmail) && u.password === password
         );
         if (!found) return { success: false, error: "Mã nhân viên/email hoặc mật khẩu không đúng." };
